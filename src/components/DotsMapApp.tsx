@@ -126,27 +126,31 @@ export default defineComponent({
       }
 
       return (
-        <div class="h-[100dvh] bg-background text-text font-sans transition-colors duration-200 flex flex-col overflow-hidden">
+        <div class="h-[100dvh] bg-background text-text font-sans transition-colors duration-200 flex flex-col">
           {header}
-          <div class="flex-1 min-h-0 p-2 lg:p-3">
-            <div class="drawer-layout" style={{ height: '100%' }}>
-              <aside class={`drawer-panel dp-l ${leftOpen.value ? 'open' : ''}`}>
-                <div class="drawer-head">
-                  <span class="text-sm font-semibold">配置面板</span>
-                  <button class="btn-icon" onClick={() => leftOpen.value = false}><X size={14} /></button>
-                </div>
-                <PaletteSelector />
-                {hasPattern && <BeadLegend />}
-              </aside>
 
-              <div class="flex-1 min-w-0" style={{ height: '100%' }}>
-                <PatternCanvas fullHeight />
-              </div>
+          <div class="flex-1 min-h-0 flex">
+            <aside class="hidden lg:flex flex-col w-80 flex-shrink-0 border-r border-border overflow-y-auto">
+              <PaletteSelector />
+              {hasPattern && <BeadLegend />}
+            </aside>
+
+            <div class="flex-1 min-h-0">
+              <PatternCanvas fullHeight />
             </div>
           </div>
 
-          <div class="hidden lg:block flex-shrink-0">{footer}</div>
+          {footer}
 
+          {/* mobile drawer */}
+          <aside class={`drawer-panel dp-l ${leftOpen.value ? 'open' : ''}`}>
+            <div class="drawer-head">
+              <span class="text-sm font-semibold">配置面板</span>
+              <button class="btn-icon" onClick={() => leftOpen.value = false}><X size={14} /></button>
+            </div>
+            <PaletteSelector />
+            {hasPattern && <BeadLegend />}
+          </aside>
           {leftOpen.value && <div class="drawer-backdrop lg:!hidden" onClick={() => leftOpen.value = false} />}
 
           {aboutOverlay}
