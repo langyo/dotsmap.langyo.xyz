@@ -592,65 +592,48 @@ export default defineComponent({
 
     function drawColorLegend(
       ctx: CanvasRenderingContext2D,
-      startX: number, startY: number, areaW: number,
-      p: BeadPattern, sorted: ReturnType<typeof getUsedColors>['sorted'],
-      usage: Record<string, number>,
-      scale: number,
+      ox: number, startY: number, areaW: number,
+      sorted: ReturnType<typeof getUsedColors>['sorted'],
+      dotSize: number,
     ): number {
       if (sorted.length === 0) return 0
 
-      const swatchW = Math.round(120 * scale / 3)
-      const swatchH = Math.round(44 * scale / 3)
-      const swatchGap = Math.round(6 * scale / 3)
-      const colorBlockW = swatchH
-      const codeFontSize = Math.round(13 * scale / 3)
-      const nameFontSize = Math.round(11 * scale / 3)
-      const titleSize = Math.round(20 * scale / 3)
-
-      ctx.fillStyle = '#333'
-      ctx.font = `bold ${titleSize}px sans-serif`
-      ctx.textAlign = 'left'
-      ctx.textBaseline = 'top'
-      ctx.fillText('使用颜色', startX, startY)
-
-      const titleH = titleSize + Math.round(8 * scale / 3)
-      const colsPerRow = Math.max(1, Math.floor(areaW / (swatchW + swatchGap)))
+      const gap = Math.round(dotSize * 0.2)
+      const step = dotSize + gap
+      const fontSize = Math.round(dotSize * 0.32)
+      const colsPerRow = Math.max(1, Math.floor(areaW / step))
       const legendRows = Math.ceil(sorted.length / colsPerRow)
+
+      const gridW = Math.min(sorted.length, colsPerRow) * step - gap
+      const startX = ox + Math.round((areaW - gridW) * 0.35)
 
       for (let i = 0; i < sorted.length; i++) {
         const col = i % colsPerRow
         const row = Math.floor(i / colsPerRow)
-        const x = startX + col * (swatchW + swatchGap)
-        const y = startY + titleH + row * (swatchH + swatchGap)
-        const count = usage[sorted[i].code] ?? 0
+        const cx = startX + col * step + dotSize / 2
+        const cy = startY + row * step + dotSize / 2
+        const r = dotSize / 2
 
-        ctx.fillStyle = '#ffffff'
-        ctx.fillRect(x, y, swatchW, swatchH)
-        ctx.strokeStyle = 'rgba(0,0,0,0.1)'
-        ctx.lineWidth = 1
-        ctx.strokeRect(x, y, swatchW, swatchH)
-
+        ctx.beginPath()
+        ctx.arc(cx, cy, r, 0, Math.PI * 2)
         ctx.fillStyle = sorted[i].hex
-        ctx.fillRect(x + 1, y + 1, colorBlockW - 2, swatchH - 2)
+        ctx.fill()
+        ctx.strokeStyle = 'rgba(0,0,0,0.12)'
+        ctx.lineWidth = Math.max(1, dotSize * 0.04)
+        ctx.stroke()
 
-        ctx.fillStyle = '#222'
-        ctx.font = `bold ${codeFontSize}px monospace`
-        ctx.textBaseline = 'top'
-        ctx.textAlign = 'left'
-        ctx.fillText(sorted[i].code, x + colorBlockW + Math.round(6 * scale / 3), y + Math.round(3 * scale / 3))
-
-        ctx.fillStyle = '#666'
-        ctx.font = `${nameFontSize}px sans-serif`
-        ctx.fillText(sorted[i].name, x + colorBlockW + Math.round(6 * scale / 3), y + Math.round(18 * scale / 3))
-
-        ctx.fillStyle = '#999'
-        ctx.font = `${nameFontSize}px sans-serif`
-        ctx.textAlign = 'right'
-        ctx.fillText(`${count}颗`, x + swatchW - Math.round(4 * scale / 3), y + Math.round(30 * scale / 3))
-        ctx.textAlign = 'left'
+        const lr = parseInt(sorted[i].hex.slice(1, 3), 16) / 255
+        const lg = parseInt(sorted[i].hex.slice(3, 5), 16) / 255
+        const lb = parseInt(sorted[i].hex.slice(5, 7), 16) / 255
+        const lum = 0.299 * lr + 0.587 * lg + 0.114 * lb
+        ctx.fillStyle = lum > 0.45 ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)'
+        ctx.font = `bold ${fontSize}px monospace`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(sorted[i].code, cx, cy)
       }
 
-      return titleH + legendRows * (swatchH + swatchGap)
+      return legendRows * step
     }
 
     function drawInfoBar(
@@ -687,10 +670,11 @@ export default defineComponent({
       const patternH = p.gridHeight * cellSize
       const { usage, usedCodes, sorted } = getUsedColors(p)
 
+      const dotSize = 42
       const tempCanvas = document.createElement('canvas')
       tempCanvas.width = 1000
       const tempCtx = tempCanvas.getContext('2d')!
-      const legendH = drawColorLegend(tempCtx, 0, 0, patternW, p, sorted, usage, 3) + 8
+      const legendH = drawColorLegend(tempCtx, 0, 0, patternW, sorted, dotSize) + 8
 
       const totalW = pad + patternW + pad
       const totalH = pad + patternH + pad + legendH + infoH + footerH
@@ -716,7 +700,7 @@ export default defineComponent({
       ctx.restore()
 
       let curY = pad + patternH + pad
-      curY += drawColorLegend(ctx, pad, curY, patternW, p, sorted, usage, 3)
+      curY += drawColorLegend(ctx, pad, curY, patternW, sorted, dotSize)
 
       drawInfoBar(ctx, curY, totalW, infoH, pad, usedCodes, p)
       curY += infoH
@@ -742,10 +726,11 @@ export default defineComponent({
 
       const { usage, usedCodes, sorted } = getUsedColors(p)
 
+      const shareDot = Math.round(scale * 10)
       const tempCanvas = document.createElement('canvas')
       tempCanvas.width = 1000
       const tempCtx = tempCanvas.getContext('2d')!
-      const legendH = drawColorLegend(tempCtx, 0, 0, patternW, p, sorted, usage, scale) + 8
+      const legendH = drawColorLegend(tempCtx, 0, 0, patternW, sorted, shareDot) + 8
 
       const totalW = pad + patternW + pad
       const totalH = pad + patternH + pad + legendH + infoH + footerH
@@ -783,7 +768,7 @@ export default defineComponent({
       ctx.restore()
 
       let curY = pad + patternH + pad
-      curY += drawColorLegend(ctx, pad, curY, patternW, p, sorted, usage, scale)
+      curY += drawColorLegend(ctx, pad, curY, patternW, sorted, shareDot)
 
       drawInfoBar(ctx, curY, totalW, infoH, pad, usedCodes, p)
       curY += infoH
@@ -814,10 +799,11 @@ export default defineComponent({
 
       const { usage, usedCodes, sorted } = getUsedColors(p)
 
+      const shareDot = Math.round(scale * 10)
       const tempCanvas = document.createElement('canvas')
       tempCanvas.width = 1000
       const tempCtx = tempCanvas.getContext('2d')!
-      const legendH = drawColorLegend(tempCtx, 0, 0, patternW, p, sorted, usage, scale) + 8
+      const legendH = drawColorLegend(tempCtx, 0, 0, patternW, sorted, shareDot) + 8
 
       const totalW = pad + patternW + pad
       const totalH = pad + patternH + pad + legendH + infoH + footerH
@@ -855,7 +841,7 @@ export default defineComponent({
       ctx.restore()
 
       let curY = pad + patternH + pad
-      curY += drawColorLegend(ctx, pad, curY, patternW, p, sorted, usage, scale)
+      curY += drawColorLegend(ctx, pad, curY, patternW, sorted, shareDot)
 
       drawInfoBar(ctx, curY, totalW, infoH, pad, usedCodes, p)
       curY += infoH
