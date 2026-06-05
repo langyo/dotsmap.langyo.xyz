@@ -33,36 +33,55 @@ export function imageDataToCanvas(imageData: ImageData): HTMLCanvasElement {
 export function removeBackground(imageData: ImageData, threshold = 30): ImageData {
   const { data, width, height } = imageData
   const result = new Uint8ClampedArray(data)
+  const visited = new Uint8Array(width * height)
+  const queue: number[] = []
+  const thresholdSq = threshold * threshold
 
-  const corners: Array<[number, number]> = [
-    [0, 0],
-    [width - 1, 0],
-    [0, height - 1],
-    [width - 1, height - 1],
-  ]
-
-  let sr = 0
-  let sg = 0
-  let sb = 0
-  for (const [cx, cy] of corners) {
-    const idx = (cy * width + cx) * 4
-    sr += data[idx]
-    sg += data[idx + 1]
-    sb += data[idx + 2]
+  for (let x = 0; x < width; x++) {
+    enqueue(x)
+    enqueue((height - 1) * width + x)
+  }
+  for (let y = 1; y < height - 1; y++) {
+    enqueue(y * width)
+    enqueue(y * width + width - 1)
   }
 
-  const avgR = sr / 4
-  const avgG = sg / 4
-  const avgB = sb / 4
-
-  for (let i = 0; i < data.length; i += 4) {
-    const dr = data[i] - avgR
-    const dg = data[i + 1] - avgG
-    const db = data[i + 2] - avgB
-    const distSq = dr * dr + dg * dg + db * db
-    if (distSq < threshold * threshold) {
-      result[i + 3] = 0
+  function enqueue(i: number) {
+    if (!visited[i]) {
+      visited[i] = 1
+      queue.push(i)
     }
+  }
+
+  let head = 0
+  while (head < queue.length) {
+    const i = queue[head++]
+    const x = i % width
+    const y = (i - x) / width
+    const idx = i * 4
+    const r = data[idx], g = data[idx + 1], b = data[idx + 2]
+
+    if (x > 0) tryEnqueue(x - 1, y, r, g, b)
+    if (x < width - 1) tryEnqueue(x + 1, y, r, g, b)
+    if (y > 0) tryEnqueue(x, y - 1, r, g, b)
+    if (y < height - 1) tryEnqueue(x, y + 1, r, g, b)
+  }
+
+  function tryEnqueue(nx: number, ny: number, r: number, g: number, b: number) {
+    const ni = ny * width + nx
+    if (visited[ni]) return
+    visited[ni] = 1
+    const nIdx = ni * 4
+    const dr = data[nIdx] - r
+    const dg = data[nIdx + 1] - g
+    const db = data[nIdx + 2] - b
+    if (dr * dr + dg * dg + db * db <= thresholdSq) {
+      queue.push(ni)
+    }
+  }
+
+  for (const i of queue) {
+    result[i * 4 + 3] = 0
   }
 
   return new ImageData(result, width, height)

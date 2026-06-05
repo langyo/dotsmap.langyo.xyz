@@ -1,46 +1,130 @@
-import { defineComponent, ref, watch, nextTick } from 'vue'
+import { defineComponent, ref, watch, nextTick, computed, onMounted, onUnmounted } from 'vue'
 import { useAppStore } from '@/stores/app'
-import { ZoomIn, ZoomOut, Maximize2, Grid3x3 } from 'lucide-vue-next'
+import { useImageProcessing } from '@/composables/useImageProcessing'
+import { ZoomIn, ZoomOut, Maximize2, Grid3x3, ImagePlus, X } from 'lucide-vue-next'
 
-const zoomLevels = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8]
+const ZOOM_LEVELS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4]
+const SB_SIZE = 10
+const MM_MAX = 160
 
 export default defineComponent({
   name: 'PatternCanvas',
   setup() {
     const store = useAppStore()
+    const { handleFileUpload, applyPreprocessing, resetAll } = useImageProcessing()
     const canvasRef = ref<HTMLCanvasElement>()
+    const vpRef = ref<HTMLDivElement>()
+    const mmRef = ref<HTMLCanvasElement>()
     const showGrid = ref(true)
     const zoom = ref(1)
     const panX = ref(0)
     const panY = ref(0)
     const isPanning = ref(false)
-    const lastMouse = ref({ x: 0, y: 0 })
     const hoverCell = ref<{ x: number; y: number; code: string; name: string } | null>(null)
-    const patternVersion = ref(0)
-
     const cellIndex = ref<Map<string, { code: string; name: string; hex: string }>>(new Map())
+    const dragType = ref<'none' | 'pan' | 'hscroll' | 'vscroll' | 'minimap'>('none')
+    const dragStart = ref({ mx: 0, my: 0, px: 0, py: 0 })
+    const vpW = ref(0)
+    const vpH = ref(0)
+    const fileInput = ref<HTMLInputElement>()
+    const isDragging = ref(false)
+    const dragCounter = ref(0)
+    let resizeObs: ResizeObserver | null = null
+    let mmBg: HTMLCanvasElement | null = null
+
+    const hasContent = computed(() => !!(store.beadedDataURL || store.processedDataURL || store.sourceDataURL))
+    const imgData = computed(() => store.beadedImageData)
+    const natW = computed(() => imgData.value?.width ?? 0)
+    const natH = computed(() => imgData.value?.height ?? 0)
+    const vW = computed(() => Math.round(natW.value * zoom.value))
+    const vH = computed(() => Math.round(natH.value * zoom.value))
+    const overX = computed(() => vW.value > vpW.value)
+    const overY = computed(() => vH.value > vpH.value)
+    const hasOverflow = computed(() => overX.value || overY.value)
+
+    const mmScale = computed(() => {
+      if (natW.value === 0) return 1
+      return Math.min(MM_MAX / natW.value, MM_MAX / natH.value, 1)
+    })
+    const mmW = computed(() => Math.round(natW.value * mmScale.value))
+    const mmH = computed(() => Math.round(natH.value * mmScale.value))
+
+    const hThumbLen = computed(() => {
+      if (!overX.value) return 0
+      const track = vpW.value - (overY.value ? SB_SIZE : 0)
+      return Math.max(30, track * (vpW.value / vW.value))
+    })
+    const hThumbPos = computed(() => {
+      if (!overX.value || vW.value === vpW.value) return 0
+      const track = vpW.value - (overY.value ? SB_SIZE : 0)
+      const maxOff = track - hThumbLen.value
+      return (-panX.value / (vW.value - vpW.value)) * maxOff
+    })
+
+    const vThumbLen = computed(() => {
+      if (!overY.value) return 0
+      const track = vpH.value - (overX.value ? SB_SIZE : 0)
+      return Math.max(30, track * (vpH.value / vH.value))
+    })
+    const vThumbPos = computed(() => {
+      if (!overY.value || vH.value === vpH.value) return 0
+      const track = vpH.value - (overX.value ? SB_SIZE : 0)
+      const maxOff = track - vThumbLen.value
+      return (-panY.value / (vH.value - vpH.value)) * maxOff
+    })
+
+    function updateVpSize() {
+      if (vpRef.value) {
+        vpW.value = vpRef.value.clientWidth
+        vpH.value = vpRef.value.clientHeight
+      }
+    }
 
     function buildCellIndex() {
       const map = new Map<string, { code: string; name: string; hex: string }>()
       const p = store.beadPattern
       if (!p) { cellIndex.value = map; return }
-      for (const cell of p.cells) {
-        map.set(`${cell.x},${cell.y}`, { code: cell.colorCode, name: cell.colorName, hex: cell.hex })
-      }
+      for (const c of p.cells) map.set(`${c.x},${c.y}`, { code: c.colorCode, name: c.colorName, hex: c.hex })
       cellIndex.value = map
     }
 
-    function cycleZoom(dir: number) {
-      const idx = zoomLevels.indexOf(zoom.value)
+    function centerView() {
+      panX.value = (vpW.value - vW.value) / 2
+      panY.value = (vpH.value - vH.value) / 2
+    }
+
+    function clampPan() {
+      if (vW.value <= vpW.value) {
+        panX.value = Math.round((vpW.value - vW.value) / 2)
+      } else {
+        panX.value = Math.round(Math.max(-(vW.value - vpW.value), Math.min(0, panX.value)))
+      }
+      if (vH.value <= vpH.value) {
+        panY.value = Math.round((vpH.value - vH.value) / 2)
+      } else {
+        panY.value = Math.round(Math.max(-(vH.value - vpH.value), Math.min(0, panY.value)))
+      }
+    }
+
+    function doZoom(dir: number, cx?: number, cy?: number) {
+      const idx = ZOOM_LEVELS.indexOf(zoom.value)
       if (idx < 0) { zoom.value = 1; return }
       const next = idx + dir
-      if (next >= 0 && next < zoomLevels.length) zoom.value = zoomLevels[next]
+      if (next < 0 || next >= ZOOM_LEVELS.length) return
+      const oldZ = zoom.value
+      const refX = cx ?? vpW.value / 2
+      const refY = cy ?? vpH.value / 2
+      const imgX = (refX - panX.value) / oldZ
+      const imgY = (refY - panY.value) / oldZ
+      zoom.value = ZOOM_LEVELS[next]
+      panX.value = refX - imgX * zoom.value
+      panY.value = refY - imgY * zoom.value
+      clampPan()
     }
 
     function resetView() {
       zoom.value = 1
-      panX.value = 0
-      panY.value = 0
+      centerView()
     }
 
     function drawPattern() {
@@ -48,164 +132,362 @@ export default defineComponent({
       if (!canvas) return
       const ctx = canvas.getContext('2d')
       if (!ctx) return
+      const d = imgData.value
+      const url = store.beadedDataURL || store.processedDataURL || store.sourceDataURL
+      if (!d && !url) return
 
-      const imageData = store.beadedImageData
-      const dataURL = store.beadedDataURL || store.processedDataURL || store.sourceDataURL
-
-      if (!imageData && !dataURL) return
-
-      if (imageData) {
-        const z = zoom.value
-        const w = Math.round(imageData.width * z)
-        const h = Math.round(imageData.height * z)
+      if (d) {
+        const w = Math.round(d.width * zoom.value)
+        const h = Math.round(d.height * zoom.value)
         canvas.width = w
         canvas.height = h
-
-        ctx.imageSmoothingEnabled = z <= 2
-
+        ctx.imageSmoothingEnabled = zoom.value <= 2
         const src = document.createElement('canvas')
-        src.width = imageData.width
-        src.height = imageData.height
-        src.getContext('2d')!.putImageData(imageData, 0, 0)
+        src.width = d.width
+        src.height = d.height
+        src.getContext('2d')!.putImageData(d, 0, 0)
         ctx.drawImage(src, 0, 0, w, h)
-
         if (showGrid.value && store.beadPattern) {
           drawGrid(ctx, w, h, store.beadPattern.gridWidth, store.beadPattern.gridHeight)
         }
-      } else if (dataURL) {
+      } else if (url) {
         const img = new Image()
         img.onload = () => {
           if (canvasRef.value !== canvas) return
           canvas.width = img.width
           canvas.height = img.height
           ctx.drawImage(img, 0, 0)
+          if (!imgData.value) {
+            panX.value = Math.round((vpW.value - img.width) / 2)
+            panY.value = Math.round((vpH.value - img.height) / 2)
+          }
         }
-        img.src = dataURL
+        img.src = url
       }
     }
 
     function drawGrid(ctx: CanvasRenderingContext2D, cw: number, ch: number, gw: number, gh: number) {
-      const cellW = cw / gw
-      const cellH = ch / gh
-
+      const cW = cw / gw, cH = ch / gh
       ctx.strokeStyle = 'rgba(128,128,128,0.15)'
       ctx.lineWidth = 0.5
       ctx.beginPath()
-      for (let x = 0; x <= gw; x++) { ctx.moveTo(x * cellW, 0); ctx.lineTo(x * cellW, ch) }
-      for (let y = 0; y <= gh; y++) { ctx.moveTo(0, y * cellH); ctx.lineTo(cw, y * cellH) }
+      for (let x = 0; x <= gw; x++) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, ch) }
+      for (let y = 0; y <= gh; y++) { ctx.moveTo(0, y * cH); ctx.lineTo(cw, y * cH) }
       ctx.stroke()
-
       ctx.strokeStyle = 'rgba(128,128,128,0.35)'
       ctx.lineWidth = 1
       ctx.beginPath()
-      for (let x = 0; x <= gw; x += 10) { ctx.moveTo(x * cellW, 0); ctx.lineTo(x * cellW, ch) }
-      for (let y = 0; y <= gh; y += 10) { ctx.moveTo(0, y * cellH); ctx.lineTo(cw, y * cellH) }
+      for (let x = 0; x <= gw; x += 10) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, ch) }
+      for (let y = 0; y <= gh; y += 10) { ctx.moveTo(0, y * cH); ctx.lineTo(cw, y * cH) }
       ctx.stroke()
+    }
+
+    function buildMinimapBg() {
+      const d = imgData.value
+      if (!d) { mmBg = null; return }
+      const bg = document.createElement('canvas')
+      bg.width = mmW.value
+      bg.height = mmH.value
+      const bgCtx = bg.getContext('2d')!
+      const src = document.createElement('canvas')
+      src.width = d.width
+      src.height = d.height
+      src.getContext('2d')!.putImageData(d, 0, 0)
+      bgCtx.drawImage(src, 0, 0, mmW.value, mmH.value)
+      mmBg = bg
+    }
+
+    function drawMinimap() {
+      const c = mmRef.value
+      if (!c || !hasOverflow.value || !imgData.value) return
+      c.width = mmW.value
+      c.height = mmH.value
+      const ctx = c.getContext('2d')
+      if (!ctx) return
+      if (mmBg) ctx.drawImage(mmBg, 0, 0)
+      const s = mmScale.value
+      const rw = Math.max(10, (vpW.value / zoom.value) * s)
+      const rh = Math.max(10, (vpH.value / zoom.value) * s)
+      const rx = Math.min(Math.max(0, (-panX.value / zoom.value) * s), mmW.value - rw)
+      const ry = Math.min(Math.max(0, (-panY.value / zoom.value) * s), mmH.value - rh)
+      ctx.fillStyle = 'rgba(255,107,157,0.15)'
+      ctx.fillRect(rx, ry, rw, rh)
+      ctx.strokeStyle = 'rgba(255,107,157,0.85)'
+      ctx.lineWidth = 2
+      ctx.strokeRect(rx, ry, rw, rh)
+    }
+
+    function getMmRect() {
+      return {
+        left: vpW.value - mmW.value - (overY.value ? SB_SIZE + 6 : 6),
+        top: vpH.value - mmH.value - (overX.value ? SB_SIZE + 6 : 6),
+      }
+    }
+
+    async function onFileChange(e: Event) {
+      const input = e.target as HTMLInputElement
+      const file = input.files?.[0]
+      if (!file) return
+      await handleFileUpload(file)
+      input.value = ''
+    }
+
+    async function onDrop(e: DragEvent) {
+      e.preventDefault()
+      dragCounter.value = 0
+      isDragging.value = false
+      const file = e.dataTransfer?.files?.[0]
+      if (file) await handleFileUpload(file)
+    }
+
+    function onDragOver(e: DragEvent) { e.preventDefault() }
+    function onDragEnter(e: DragEvent) { e.preventDefault(); dragCounter.value++; isDragging.value = true }
+    function onDragLeave(e: DragEvent) {
+      e.preventDefault()
+      dragCounter.value--
+      if (dragCounter.value <= 0) { dragCounter.value = 0; isDragging.value = false }
+    }
+
+    function handleMagicWandClick(e: MouseEvent) {
+      if (store.preprocessMode !== 'magic-wand' || store.beadPattern || !store.sourceImage) return
+      if (!canvasRef.value || !vpRef.value) return
+      const rect = vpRef.value.getBoundingClientRect()
+      const canvas = canvasRef.value
+      const canvasX = e.clientX - rect.left - panX.value
+      const canvasY = e.clientY - rect.top - panY.value
+      if (canvasX < 0 || canvasY < 0 || canvasX >= canvas.width || canvasY >= canvas.height) return
+      const sourceW = store.sourceImage.width
+      const sourceH = store.sourceImage.height
+      const ratio = Math.min(1, 512 / sourceW, 512 / sourceH)
+      const resizedW = Math.round(sourceW * ratio)
+      const resizedH = Math.round(sourceH * ratio)
+      store.magicX = Math.floor(Math.max(0, Math.min(resizedW - 1, canvasX * resizedW / canvas.width)))
+      store.magicY = Math.floor(Math.max(0, Math.min(resizedH - 1, canvasY * resizedH / canvas.height)))
+      applyPreprocessing()
     }
 
     function onWheel(e: WheelEvent) {
       e.preventDefault()
-      cycleZoom(e.deltaY < 0 ? 1 : -1)
+      if (!imgData.value) return
+      const rect = vpRef.value?.getBoundingClientRect()
+      if (!rect) return
+      doZoom(e.deltaY < 0 ? 1 : -1, e.clientX - rect.left, e.clientY - rect.top)
     }
 
-    function onMouseDown(e: MouseEvent) {
-      if (e.button === 0 && (e.ctrlKey || e.metaKey)) {
-        isPanning.value = true
-        lastMouse.value = { x: e.clientX, y: e.clientY }
+    function onVpMouseDown(e: MouseEvent) {
+      if (!vpRef.value) return
+      if (store.preprocessMode === 'magic-wand' && !store.beadPattern) {
+        handleMagicWandClick(e)
+        e.preventDefault()
+        return
+      }
+      const rect = vpRef.value.getBoundingClientRect()
+      const mx = e.clientX - rect.left
+      const my = e.clientY - rect.top
+
+      if (overY.value && mx >= vpW.value - SB_SIZE && my < vpH.value - (overX.value ? SB_SIZE : 0)) {
+        startDrag('vscroll', mx, my)
+        e.preventDefault()
+        return
+      }
+      if (overX.value && my >= vpH.value - SB_SIZE && mx < vpW.value - (overY.value ? SB_SIZE : 0)) {
+        startDrag('hscroll', mx, my)
+        e.preventDefault()
+        return
+      }
+      if (hasOverflow.value && imgData.value) {
+        const mm = getMmRect()
+        if (mx >= mm.left && mx <= mm.left + mmW.value && my >= mm.top && my <= mm.top + mmH.value) {
+          startDrag('minimap', mx, my)
+          navMinimap(mx, my)
+          e.preventDefault()
+          return
+        }
+      }
+      if (e.button === 0 && imgData.value) {
+        startDrag('pan', e.clientX, e.clientY)
         e.preventDefault()
       }
     }
 
-    function onMouseMove(e: MouseEvent) {
-      if (isPanning.value) {
-        panX.value += e.clientX - lastMouse.value.x
-        panY.value += e.clientY - lastMouse.value.y
-        lastMouse.value = { x: e.clientX, y: e.clientY }
-      }
+    function startDrag(type: typeof dragType.value, mx: number, my: number) {
+      dragType.value = type
+      dragStart.value = { mx, my, px: panX.value, py: panY.value }
+      if (type === 'pan') isPanning.value = true
+      window.addEventListener('mousemove', onWinMove)
+      window.addEventListener('mouseup', onWinUp)
+    }
 
-      if (store.beadPattern && zoom.value >= 2) {
-        const canvas = canvasRef.value
-        if (!canvas) return
-        const rect = canvas.getBoundingClientRect()
-        const cx = e.clientX - rect.left
-        const cy = e.clientY - rect.top
-        const cellW = canvas.width / store.beadPattern.gridWidth
-        const cellH = canvas.height / store.beadPattern.gridHeight
-        const gx = Math.floor(cx / cellW)
-        const gy = Math.floor(cy / cellH)
-        const entry = cellIndex.value.get(`${gx},${gy}`)
-        hoverCell.value = entry ? { x: gx, y: gy, code: entry.code, name: entry.name } : null
-      } else {
-        hoverCell.value = null
+    function onWinMove(e: MouseEvent) {
+      if (dragType.value === 'none') return
+
+      if (dragType.value === 'pan') {
+        panX.value = dragStart.value.px + (e.clientX - dragStart.value.mx)
+        panY.value = dragStart.value.py + (e.clientY - dragStart.value.my)
+        clampPan()
+        drawMinimap()
+      } else if (dragType.value === 'hscroll') {
+        const rect = vpRef.value?.getBoundingClientRect()
+        if (!rect) return
+        const mx = e.clientX - rect.left
+        const delta = mx - dragStart.value.mx
+        const track = vpW.value - (overY.value ? SB_SIZE : 0)
+        const maxOff = track - hThumbLen.value
+        if (maxOff > 0) {
+          panX.value = dragStart.value.px - delta * ((vW.value - vpW.value) / maxOff)
+          clampPan()
+          drawMinimap()
+        }
+      } else if (dragType.value === 'vscroll') {
+        const rect = vpRef.value?.getBoundingClientRect()
+        if (!rect) return
+        const my = e.clientY - rect.top
+        const delta = my - dragStart.value.my
+        const track = vpH.value - (overX.value ? SB_SIZE : 0)
+        const maxOff = track - vThumbLen.value
+        if (maxOff > 0) {
+          panY.value = dragStart.value.py - delta * ((vH.value - vpH.value) / maxOff)
+          clampPan()
+          drawMinimap()
+        }
+      } else if (dragType.value === 'minimap') {
+        const rect = vpRef.value?.getBoundingClientRect()
+        if (!rect) return
+        navMinimap(e.clientX - rect.left, e.clientY - rect.top)
       }
     }
 
-    function onMouseUp() {
+    function navMinimap(mx: number, my: number) {
+      const mm = getMmRect()
+      const s = mmScale.value
+      const imgX = (mx - mm.left) / s
+      const imgY = (my - mm.top) / s
+      panX.value = Math.round(vpW.value / 2 - imgX * zoom.value)
+      panY.value = Math.round(vpH.value / 2 - imgY * zoom.value)
+      clampPan()
+      drawMinimap()
+    }
+
+    function onWinUp() {
+      dragType.value = 'none'
       isPanning.value = false
+      window.removeEventListener('mousemove', onWinMove)
+      window.removeEventListener('mouseup', onWinUp)
+    }
+
+    function updateHover(e: MouseEvent) {
+      if (!store.beadPattern || zoom.value < 2 || !vpRef.value || !canvasRef.value) {
+        hoverCell.value = null
+        return
+      }
+      const rect = vpRef.value.getBoundingClientRect()
+      const cx = e.clientX - rect.left - panX.value
+      const cy = e.clientY - rect.top - panY.value
+      const cW = canvasRef.value.width / store.beadPattern.gridWidth
+      const cH = canvasRef.value.height / store.beadPattern.gridHeight
+      const gx = Math.floor(cx / cW)
+      const gy = Math.floor(cy / cH)
+      if (gx < 0 || gy < 0 || gx >= store.beadPattern.gridWidth || gy >= store.beadPattern.gridHeight) {
+        hoverCell.value = null
+        return
+      }
+      const entry = cellIndex.value.get(`${gx},${gy}`)
+      hoverCell.value = entry ? { x: gx, y: gy, code: entry.code, name: entry.name } : null
     }
 
     function downloadPNG() {
       const canvas = canvasRef.value
       if (!canvas) return
-      const dataURL = canvas.toDataURL()
-      const link = document.createElement('a')
-      link.download = 'dotsmap-pattern.png'
-      link.href = dataURL
-      link.click()
+      const a = document.createElement('a')
+      a.download = 'dotsmap-pattern.png'
+      a.href = canvas.toDataURL()
+      a.click()
     }
 
     function downloadSVG() {
-      const pattern = store.beadPattern
-      if (!pattern) return
-      const bs = pattern.beadSize
-      const w = pattern.gridWidth * bs
-      const h = pattern.gridHeight * bs
-      const parts = ['<svg xmlns="http://www.w3.org/2000/svg" width="', String(w), '" height="', String(h), '" viewBox="0 0 ', String(w), ' ', String(h), '">\n']
-      parts.push('<rect width="', String(w), '" height="', String(h), '" fill="#f0f0f0"/>\n')
-      for (const cell of pattern.cells) {
-        const hex = cell.hex
-        parts.push(
-          '<rect x="', String(cell.x * bs), '" y="', String(cell.y * bs),
-          '" width="', String(bs), '" height="', String(bs),
-          '" fill="', hex, '" stroke="#ccc" stroke-width="0.5"/>\n',
-        )
+      const p = store.beadPattern
+      if (!p) return
+      const bs = p.beadSize
+      const w = p.gridWidth * bs, h = p.gridHeight * bs
+      const parts = [`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">\n`]
+      parts.push(`<rect width="${w}" height="${h}" fill="#f0f0f0"/>\n`)
+      for (const c of p.cells) {
+        parts.push(`<rect x="${c.x * bs}" y="${c.y * bs}" width="${bs}" height="${bs}" fill="${c.hex}" stroke="#ccc" stroke-width="0.5"/>\n`)
       }
       parts.push('</svg>')
-      const svg = parts.join('')
-      const blob = new Blob([svg], { type: 'image/svg+xml' })
+      const blob = new Blob([parts.join('')], { type: 'image/svg+xml' })
       const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.download = 'dotsmap-grid.svg'
-      link.href = url
-      link.click()
+      const a = document.createElement('a')
+      a.download = 'dotsmap-grid.svg'
+      a.href = url
+      a.click()
       setTimeout(() => URL.revokeObjectURL(url), 500)
     }
 
     function downloadCSV() {
-      const pattern = store.beadPattern
-      if (!pattern) return
-      const grid: string[][] = Array.from({ length: pattern.gridHeight }, () => Array(pattern.gridWidth).fill(''))
-      for (const cell of pattern.cells) {
-        if (cell.y < grid.length && cell.x < grid[cell.y]!.length) {
-          grid[cell.y][cell.x] = cell.colorName
-        }
+      const p = store.beadPattern
+      if (!p) return
+      const grid: string[][] = Array.from({ length: p.gridHeight }, () => Array(p.gridWidth).fill(''))
+      for (const c of p.cells) {
+        if (c.y < grid.length && c.x < (grid[c.y]?.length ?? 0)) grid[c.y][c.x] = c.colorName
       }
-      const blob = new Blob([grid.map((r) => r.join(',')).join('\n')], { type: 'text/csv' })
+      const blob = new Blob([grid.map(r => r.join(',')).join('\n')], { type: 'text/csv' })
       const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.download = 'dotsmap-pattern.csv'
-      link.href = url
-      link.click()
+      const a = document.createElement('a')
+      a.download = 'dotsmap-pattern.csv'
+      a.href = url
+      a.click()
       setTimeout(() => URL.revokeObjectURL(url), 500)
     }
 
     watch(
-      () => [store.beadedDataURL, store.processedDataURL, store.sourceDataURL, showGrid.value, zoom.value],
-      () => nextTick(drawPattern),
+      () => [store.beadedDataURL, store.processedDataURL, store.sourceDataURL, showGrid.value, zoom.value] as const,
+      () => nextTick(() => {
+        drawPattern()
+        buildMinimapBg()
+        drawMinimap()
+      }),
     )
 
     watch(() => store.beadPattern, (p) => {
-      if (p) { buildCellIndex(); patternVersion.value++ }
+      if (p) buildCellIndex()
+    })
+
+    watch(imgData, (d) => {
+      if (d) {
+        nextTick(() => {
+          centerView()
+          buildMinimapBg()
+          drawMinimap()
+        })
+      }
+    })
+
+    onMounted(() => {
+      if (vpRef.value) {
+        resizeObs = new ResizeObserver(() => {
+          updateVpSize()
+          clampPan()
+          drawMinimap()
+        })
+        resizeObs.observe(vpRef.value)
+        updateVpSize()
+      }
+    })
+
+    onUnmounted(() => {
+      resizeObs?.disconnect()
+      window.removeEventListener('mousemove', onWinMove)
+      window.removeEventListener('mouseup', onWinUp)
+    })
+
+    const vpCursor = computed(() => {
+      if (!hasContent.value) return 'pointer'
+      if (isPanning.value) return 'grabbing'
+      if (dragType.value !== 'none') return 'default'
+      if (store.preprocessMode === 'magic-wand' && !store.beadPattern) return 'crosshair'
+      if (imgData.value) return 'grab'
+      return 'default'
     })
 
     return () => (
@@ -214,41 +496,98 @@ export default defineComponent({
           <h3 class="panel-title">
             {store.beadPattern ? `图纸 ${store.beadPattern.gridWidth}×${store.beadPattern.gridHeight}` : '预览'}
           </h3>
-          {store.beadPattern && (
+          {store.beadPattern ? (
             <div class="flex items-center gap-1.5 flex-wrap">
               <div class="flex items-center gap-0.5 bg-background rounded-2xl border border-border px-1 py-0.5">
-                <button class="btn-icon" onClick={() => cycleZoom(-1)} title="缩小" aria-label="缩小"><ZoomOut size={14} /></button>
+                <button class="btn-icon" onClick={() => doZoom(-1)} title="缩小" aria-label="缩小"><ZoomOut size={14} /></button>
                 <span class="text-xs font-mono w-10 text-center select-none">{Math.round(zoom.value * 100)}%</span>
-                <button class="btn-icon" onClick={() => cycleZoom(1)} title="放大" aria-label="放大"><ZoomIn size={14} /></button>
+                <button class="btn-icon" onClick={() => doZoom(1)} title="放大" aria-label="放大"><ZoomIn size={14} /></button>
                 <button class="btn-icon" onClick={resetView} title="重置视图" aria-label="重置视图"><Maximize2 size={14} /></button>
               </div>
-              <label class="flex items-center gap-1 text-xs cursor-pointer select-none">
-                <input type="checkbox" checked={showGrid.value} onChange={(e) => (showGrid.value = (e.target as HTMLInputElement).checked)} />
+              <div class="flex items-center gap-1.5 text-xs select-none">
                 <Grid3x3 size={14} />
-              </label>
+                <button
+                  class={`switch ${showGrid.value ? 'active' : ''}`}
+                  role="switch"
+                  aria-checked={showGrid.value}
+                  aria-label="网格"
+                  onClick={() => showGrid.value = !showGrid.value}
+                />
+              </div>
               <div class="flex gap-0.5">
                 <button class="btn btn-sm" onClick={downloadPNG}>PNG</button>
                 <button class="btn btn-sm" onClick={downloadSVG}>SVG</button>
                 <button class="btn btn-sm" onClick={downloadCSV}>CSV</button>
               </div>
             </div>
-          )}
+          ) : hasContent.value ? (
+            <div class="flex gap-1">
+              <button class="btn btn-sm" onClick={() => fileInput.value?.click()}>更换图片</button>
+              <button class="btn btn-sm btn-danger" onClick={resetAll}><X size={12} /> 清除</button>
+            </div>
+          ) : null}
         </div>
 
-        <div class="canvas-container" onWheel={onWheel} onMousedown={onMouseDown} onMousemove={onMouseMove} onMouseup={onMouseUp} onMouseleave={onMouseUp}>
-          <div style={{ transform: `translate(${panX.value}px, ${panY.value}px)` }}>
-            {(store.beadedDataURL || store.processedDataURL || store.sourceDataURL) ? (
-              <canvas ref={canvasRef} class="canvas-render" style={{ imageRendering: zoom.value > 2 ? 'pixelated' : 'auto' }} />
-            ) : (
-              <p class="text-xs text-text-secondary p-10 text-center">上传图片并生成图纸后在此预览</p>
-            )}
-          </div>
+        <div
+          ref={vpRef}
+          class="canvas-container"
+          style={{ cursor: vpCursor.value }}
+          onWheel={onWheel}
+          onMousedown={onVpMouseDown}
+          onMousemove={updateHover}
+        >
+          {hasContent.value ? (
+            <>
+              <div
+                class="canvas-transform-layer"
+                style={{
+                  transform: `translate(${panX.value}px, ${panY.value}px)`,
+                  willChange: 'transform',
+                }}
+              >
+                <canvas ref={canvasRef} style={{ imageRendering: zoom.value > 2 ? 'pixelated' : 'auto', display: 'block' }} />
+              </div>
+
+              {overX.value && (
+                <div class="sb-track sb-h" style={{ width: `calc(100% - ${overY.value ? SB_SIZE : 0}px)` }}>
+                  <div class="sb-thumb" style={{ left: hThumbPos.value + 'px', width: hThumbLen.value + 'px' }} />
+                </div>
+              )}
+              {overY.value && (
+                <div class="sb-track sb-v" style={{ height: `calc(100% - ${overX.value ? SB_SIZE : 0}px)` }}>
+                  <div class="sb-thumb" style={{ top: vThumbPos.value + 'px', height: vThumbLen.value + 'px' }} />
+                </div>
+              )}
+
+              {hasOverflow.value && imgData.value && (
+                <div class="minimap-box" style={{
+                  right: (overY.value ? SB_SIZE + 6 : 6) + 'px',
+                  bottom: (overX.value ? SB_SIZE + 6 : 6) + 'px',
+                }}>
+                  <canvas ref={mmRef} width={mmW.value} height={mmH.value} style={{ display: 'block' }} />
+                </div>
+              )}
+            </>
+          ) : (
+            <div
+              class={`upload-zone flex-1 ${isDragging.value ? 'dragging' : ''}`}
+              onClick={() => fileInput.value?.click()}
+              onDrop={onDrop}
+              onDragover={onDragOver}
+              onDragenter={onDragEnter}
+              onDragleave={onDragLeave}
+            >
+              <ImagePlus size={32} class="text-primary mb-2" />
+              <p class="text-sm font-medium">拖拽或点击上传图片</p>
+              <p class="text-xs text-text-secondary mt-1">JPG / PNG / WebP</p>
+            </div>
+          )}
         </div>
 
         {hoverCell.value && (
           <div class="flex items-center gap-2 text-xs text-text-secondary mt-1">
             <div class="w-3 h-3 rounded-full border border-black/10"
-              style={{ backgroundColor: store.selectedPalette.find((c) => c.code === hoverCell.value!.code)?.hex ?? '#888' }} />
+              style={{ backgroundColor: store.selectedPalette.find(c => c.code === hoverCell.value!.code)?.hex ?? '#888' }} />
             <span class="font-mono">({hoverCell.value.x}, {hoverCell.value.y})</span>
             <span>{hoverCell.value.name}</span>
           </div>
@@ -257,6 +596,8 @@ export default defineComponent({
         {store.error && (
           <div class="text-xs text-error bg-error/10 rounded-2xl p-2">{store.error}</div>
         )}
+
+        <input ref={fileInput} type="file" accept="image/*" class="hidden" onChange={onFileChange} />
       </div>
     )
   },

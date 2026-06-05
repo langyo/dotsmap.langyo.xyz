@@ -16,35 +16,6 @@ export default defineComponent({
       { value: 'magic-wand' as const, label: '魔术棒' },
     ]
 
-    const onImageClick = (e: MouseEvent) => {
-      if (store.preprocessMode !== 'magic-wand') return
-      const img = e.target as HTMLImageElement
-      const rect = img.getBoundingClientRect()
-      const naturalW = img.naturalWidth
-      const naturalH = img.naturalHeight
-      const displayW = rect.width
-      const displayH = rect.height
-
-      const scaleX = naturalW / displayW
-      const scaleY = naturalH / displayH
-      const scale = Math.max(scaleX, scaleY)
-
-      const renderedW = naturalW / scale
-      const renderedH = naturalH / scale
-      const offsetX = (displayW - renderedW) / 2
-      const offsetY = (displayH - renderedH) / 2
-
-      const imgX = e.clientX - rect.left - offsetX
-      const imgY = e.clientY - rect.top - offsetY
-
-      const px = Math.floor(Math.max(0, Math.min(naturalW - 1, imgX * scale)))
-      const py = Math.floor(Math.max(0, Math.min(naturalH - 1, imgY * scale)))
-
-      store.magicX = px
-      store.magicY = py
-      applyPreprocessing()
-    }
-
     return () => (
       <div class="panel">
         <div class="flex items-center justify-between">
@@ -97,18 +68,7 @@ export default defineComponent({
         )}
 
         {store.preprocessMode === 'magic-wand' && (
-          <div class="hint">点击图片选取要保留的区域</div>
-        )}
-
-        {store.sourceDataURL && store.preprocessMode !== 'none' && (
-          <div class="rounded-2xl overflow-hidden border border-border bg-checkerboard">
-            <img
-              src={store.processedDataURL ?? store.sourceDataURL}
-              alt="Preview"
-              class={`w-full object-contain max-h-48 ${store.preprocessMode === 'magic-wand' ? 'cursor-crosshair' : ''}`}
-              onClick={onImageClick}
-            />
-          </div>
+          <div class="hint">点击画布选取要保留的区域</div>
         )}
 
         <div class="flex gap-2">
