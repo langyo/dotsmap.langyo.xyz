@@ -132,9 +132,9 @@ export default defineComponent({
           {/* body: aside | canvas */}
           <div class="flex-1 min-h-0 flex p-3 gap-3">
             {/* desktop sidebar */}
-            <aside class="hidden lg:flex flex-col w-80 flex-shrink-0 min-h-0 overflow-y-auto pr-3 border-r border-border">
-              <PaletteSelector />
+            <aside class="hidden lg:flex flex-col w-80 flex-shrink-0 min-h-0 overflow-y-auto pr-3 border-r border-border gap-3">
               {hasPattern && <BeadLegend />}
+              <PaletteSelector />
             </aside>
 
             {/* canvas */}
@@ -160,8 +160,8 @@ export default defineComponent({
               <span class="text-sm font-semibold">配置面板</span>
               <button class="btn-icon" onClick={() => leftOpen.value = false}><X size={14} /></button>
             </div>
-            <PaletteSelector />
             {hasPattern && <BeadLegend />}
+            <PaletteSelector />
           </aside>
 
           {aboutOverlay}
