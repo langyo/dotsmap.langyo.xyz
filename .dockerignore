@@ -1,0 +1,10 @@
+target/
+node_modules/
+dist/
+.git/
+.env
+*.md
+.github/
+deploy/
+docker-compose.yml
+.vite/

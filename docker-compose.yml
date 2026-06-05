@@ -1,0 +1,7 @@
+services:
+  dotsmap:
+    image: ghcr.io/langyo/dotsmap:latest
+    container_name: dotsmap
+    restart: unless-stopped
+    ports:
+      - "3005:3005"

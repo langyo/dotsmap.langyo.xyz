@@ -1,0 +1,22 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+vite.config.d.ts
+vite.config.js
+pnpm-workspace.yaml
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example

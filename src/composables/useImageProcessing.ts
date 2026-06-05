@@ -1,0 +1,141 @@
+import { useAppStore } from '@/stores/app'
+import {
+  removeBackground,
+  magicWandSelect,
+  resizeImage,
+  loadImage,
+  imageToImageData,
+  imageDataToCanvas,
+  downsampleToGrid,
+} from '@/utils/imageProcessing'
+import { findClosestColor, clearPaletteCache } from '@/utils/colorMatching'
+import type { BeadPattern } from '@/types'
+
+export function useImageProcessing() {
+  const store = useAppStore()
+
+  function dataURLFromImageData(imageData: ImageData): string {
+    return imageDataToCanvas(imageData).toDataURL()
+  }
+
+  function handleError(err: unknown, fallback: string) {
+    const msg = err instanceof Error ? err.message : String(err)
+    store.setError(fallback ? `${fallback}: ${msg}` : msg)
+    store.isProcessing = false
+  }
+
+  async function handleFileUpload(file: File) {
+    store.isProcessing = true
+    store.setError(null)
+    try {
+      const img = await loadImage(file)
+      const canvas = document.createElement('canvas')
+      canvas.width = img.width
+      canvas.height = img.height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) throw new Error('Canvas not supported')
+      ctx.drawImage(img, 0, 0)
+      store.setSourceImage(img, canvas.toDataURL())
+    } catch (err) {
+      handleError(err, '图片加载失败')
+    } finally {
+      store.isProcessing = false
+    }
+  }
+
+  function applyPreprocessing() {
+    if (!store.sourceImage) return
+    store.isProcessing = true
+    store.setError(null)
+
+    try {
+      let imageData = imageToImageData(store.sourceImage)
+      imageData = resizeImage(imageData, 512)
+
+      if (store.preprocessMode === 'remove-bg') {
+        imageData = removeBackground(imageData, store.bgThreshold)
+      } else if (store.preprocessMode === 'magic-wand') {
+        imageData = magicWandSelect(imageData, store.magicX, store.magicY, store.magicTolerance)
+      }
+
+      store.setProcessedImage(imageData, dataURLFromImageData(imageData))
+    } catch (err) {
+      handleError(err, '预处理失败')
+    } finally {
+      store.isProcessing = false
+    }
+  }
+
+  function generatePattern() {
+    const source = store.processedImageData
+      ?? (store.sourceImage ? imageToImageData(store.sourceImage) : null)
+
+    if (!source) return
+    store.isProcessing = true
+    store.setError(null)
+    clearPaletteCache()
+
+    try {
+      const resized = resizeImage(source, 512)
+      const cells = downsampleToGrid(resized, store.gridWidth, store.gridHeight)
+
+      const patternCells: Array<{ x: number; y: number; colorCode: string; colorName: string; hex: string }> = []
+      const usage: Record<string, number> = {}
+      const beadedData = new Uint8ClampedArray(resized.width * resized.height * 4)
+
+      const cellW = Math.ceil(resized.width / store.gridWidth)
+      const cellH = Math.ceil(resized.height / store.gridHeight)
+
+      for (const cell of cells) {
+        if (cell.a < 128) continue
+
+        const nearest = findClosestColor(cell.r, cell.g, cell.b, store.selectedPalette)
+
+        patternCells.push({
+          x: cell.x,
+          y: cell.y,
+          colorCode: nearest.code,
+          colorName: nearest.name,
+          hex: nearest.hex,
+        })
+
+        usage[nearest.code] = (usage[nearest.code] ?? 0) + 1
+
+        for (let py = cell.y * cellH; py < Math.min((cell.y + 1) * cellH, resized.height); py++) {
+          for (let px = cell.x * cellW; px < Math.min((cell.x + 1) * cellW, resized.width); px++) {
+            const idx = (py * resized.width + px) * 4
+            beadedData[idx] = nearest.r
+            beadedData[idx + 1] = nearest.g
+            beadedData[idx + 2] = nearest.b
+            beadedData[idx + 3] = 255
+          }
+        }
+      }
+
+      const beadedImageData = new ImageData(beadedData, resized.width, resized.height)
+      store.setBeadedImage(beadedImageData, dataURLFromImageData(beadedImageData))
+
+      const pattern: BeadPattern = {
+        cells: patternCells,
+        gridWidth: store.gridWidth,
+        gridHeight: store.gridHeight,
+        beadSize: store.beadSize,
+        paletteLabel: store.selectedPaletteLabel,
+        paletteCount: store.selectedPaletteCount,
+        sourceWidth: resized.width,
+        sourceHeight: resized.height,
+      }
+      store.setBeadPattern(pattern, usage)
+    } catch (err) {
+      handleError(err, '图纸生成失败')
+    } finally {
+      store.isProcessing = false
+    }
+  }
+
+  function resetAll() {
+    store.resetAll()
+  }
+
+  return { handleFileUpload, applyPreprocessing, generatePattern, resetAll }
+}
