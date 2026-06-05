@@ -83,7 +83,7 @@ export default defineComponent({
           </div>
         )}
 
-        <div class="flex flex-wrap gap-0.5 max-h-40 overflow-y-auto p-1 rounded-2xl bg-background">
+        <div class="flex flex-wrap gap-0.5 p-1 rounded-2xl bg-background">
           {filteredPalette.value.map((col) => (
             <div
               key={col.code}
