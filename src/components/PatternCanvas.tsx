@@ -575,14 +575,13 @@ export default defineComponent({
         const dotAreaLeft = fx + 18 + titleW + 24
         const dotAreaW = qrRightEdge - dotAreaLeft
         if (dotAreaW > 20) {
-          const dotH = fh * 0.82
-          const dotSize = Math.round(dotH / 3)
+          const dotSize = Math.round(fh * 0.2)
           const gap = Math.round(dotSize * 0.15)
           const step = dotSize + gap
           const fontSize = Math.round(dotSize * 0.3)
           const colsPerRow = Math.max(1, Math.floor(dotAreaW / step))
           const dotStartX = dotAreaLeft + Math.round((dotAreaW - Math.min(sorted.length, colsPerRow) * step + gap) / 2)
-          const dotStartY = fy + Math.round((fh - 3 * step + gap) / 2)
+          const dotStartY = fy + Math.round(fh * 0.18)
 
           for (let i = 0; i < sorted.length; i++) {
             const col = i % colsPerRow
@@ -603,7 +602,7 @@ export default defineComponent({
             const lg = parseInt(sorted[i].hex.slice(3, 5), 16) / 255
             const lb = parseInt(sorted[i].hex.slice(5, 7), 16) / 255
             const lum = 0.299 * lr + 0.587 * lg + 0.114 * lb
-            ctx.fillStyle = lum > 0.45 ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)'
+            ctx.fillStyle = lum > 0.55 ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.95)'
             ctx.font = `bold ${fontSize}px monospace`
             ctx.textAlign = 'center'
             ctx.textBaseline = 'middle'
