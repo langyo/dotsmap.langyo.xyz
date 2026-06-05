@@ -150,6 +150,9 @@ export default defineComponent({
         src.height = d.height
         src.getContext('2d')!.putImageData(d, 0, 0)
         ctx.drawImage(src, 0, 0, w, h)
+        if (store.highlightCode && store.beadPattern) {
+          drawHighlight(ctx, w, h, store.beadPattern.gridWidth, store.beadPattern.gridHeight)
+        }
         if (showGrid.value && store.beadPattern) {
           drawGrid(ctx, w, h, store.beadPattern.gridWidth, store.beadPattern.gridHeight)
         }
@@ -183,6 +186,18 @@ export default defineComponent({
       for (let x = 0; x <= gw; x += 10) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, ch) }
       for (let y = 0; y <= gh; y += 10) { ctx.moveTo(0, y * cH); ctx.lineTo(cw, y * cH) }
       ctx.stroke()
+    }
+
+    function drawHighlight(ctx: CanvasRenderingContext2D, cw: number, ch: number, gw: number, gh: number) {
+      const p = store.beadPattern
+      if (!p) return
+      const cW = cw / gw, cH = ch / gh
+      ctx.fillStyle = 'rgba(128,128,128,0.75)'
+      for (const c of p.cells) {
+        if (c.colorCode !== store.highlightCode) {
+          ctx.fillRect(c.x * cW, c.y * cH, cW, cH)
+        }
+      }
     }
 
     function buildMinimapBg() {
@@ -521,7 +536,7 @@ export default defineComponent({
     }
 
     watch(
-      () => [store.beadedDataURL, store.processedDataURL, store.sourceDataURL, showGrid.value, zoom.value] as const,
+      () => [store.beadedDataURL, store.processedDataURL, store.sourceDataURL, store.highlightCode, showGrid.value, zoom.value] as const,
       () => nextTick(() => {
         drawPattern()
         buildMinimapBg()
