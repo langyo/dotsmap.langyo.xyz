@@ -30,7 +30,7 @@ export default defineComponent({
             </span>
           </h3>
           {filterCode.value && (
-            <button class="text-xs text-primary hover:underline rounded-lg px-1.5 py-0.5 hover:bg-surface/40 transition-all" onClick={() => filterCode.value = null}>
+            <button class="text-xs text-primary hover:underline rounded-lg px-2 py-1 hover:bg-surface/40 transition-all" onClick={() => filterCode.value = null}>
               清除筛选
             </button>
           )}
@@ -51,7 +51,7 @@ export default defineComponent({
             return (
               <button
                 key={col.code}
-                class={`flex items-center gap-1.5 text-xs py-1.5 px-1.5 rounded-3xl transition-all duration-100 border border-border/30 ${
+                class={`flex items-center gap-1.5 text-xs py-1.5 px-2 rounded-3xl transition-all duration-100 border border-border/30 ${
                   active ? 'ring-2 ring-primary bg-primary/10' : 'hover:bg-background'
                 }`}
                 onClick={() => { filterCode.value = active ? null : col.code }}

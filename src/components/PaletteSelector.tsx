@@ -49,7 +49,7 @@ export default defineComponent({
 
         <div class="space-y-1">
           <button
-            class="flex items-center gap-1 text-xs text-text-secondary hover:text-primary transition-colors rounded-lg px-1 py-0.5 hover:bg-surface/40"
+            class="flex items-center gap-1 text-xs text-text-secondary hover:text-primary transition-colors rounded-lg px-2 py-1 hover:bg-surface/40"
             onClick={() => (showCategoryFilter.value = !showCategoryFilter.value)}
           >
             {categoryLabel[store.currentBrand.colors[0]?.category] ? '分类筛选' : ''}

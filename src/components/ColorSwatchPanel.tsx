@@ -37,7 +37,7 @@ export default defineComponent({
 
     return () => (
       <div class="panel">
-        <button class="flex items-center justify-between w-full rounded-2xl px-1 py-0.5 hover:bg-surface/60 transition-colors" onClick={() => (isExpanded.value = !isExpanded.value)}>
+        <button class="flex items-center justify-between w-full rounded-2xl px-3 py-1 hover:bg-surface/60 transition-colors" onClick={() => (isExpanded.value = !isExpanded.value)}>
           <h3 class="panel-title">
             <SwatchBook size={16} />
             {store.currentBrand.name} 色卡
@@ -89,7 +89,7 @@ export default defineComponent({
                     <div class="text-xs text-text-secondary mb-1 font-medium">{g.label}</div>
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-8 gap-1">
                       {g.colors.map((col) => (
-                        <div key={col.code} class="flex items-center gap-1 p-1.5 rounded-3xl bg-surface/40 hover:bg-background transition-colors border border-border/30">
+                        <div key={col.code} class="flex items-center gap-1.5 px-2 py-1.5 rounded-3xl bg-surface/40 hover:bg-background transition-colors border border-border/30">
                           <div
                             class="w-5 h-5 sm:w-5 sm:h-5 rounded-full border border-black/10 flex-shrink-0"
                             style={{ backgroundColor: col.hex }}

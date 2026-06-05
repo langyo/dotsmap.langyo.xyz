@@ -53,7 +53,7 @@ export default defineComponent({
             预处理
           </h3>
           {store.preprocessMode !== 'none' && (
-            <button class="text-xs text-primary hover:underline rounded-lg px-1.5 py-0.5 hover:bg-surface/40 transition-all" onClick={() => (isExpanded.value = !isExpanded.value)}>
+            <button class="text-xs text-primary hover:underline rounded-lg px-2 py-1 hover:bg-surface/40 transition-all" onClick={() => (isExpanded.value = !isExpanded.value)}>
               {isExpanded.value ? '收起' : '参数'}
             </button>
           )}
