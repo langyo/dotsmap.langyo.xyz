@@ -526,40 +526,42 @@ export default defineComponent({
       ctx.fillStyle = '#d63384'
       ctx.fillRect(fx, fy, fw, 3)
 
-      const titleSize = Math.round(fh * 0.24)
-      const subSize = Math.round(fh * 0.12)
+      const titleSize = Math.round(fh * 0.14)
+      const subSize = Math.round(fh * 0.08)
       const qrSize = Math.round(fh * 0.55)
       const qrX = fx + fw - qrSize - 18
       const qrTopY = fy + Math.round((fh - qrSize) * 0.3)
 
       ctx.textBaseline = 'top'
       ctx.textAlign = 'left'
-      const titleY = qrTopY
+      const col1X = fx + 18
+      const line1Y = qrTopY
+
+      ctx.font = `${subSize}px sans-serif`
+      ctx.fillStyle = '#555'
+      ctx.fillText('该图纸由', col1X, line1Y)
 
       ctx.font = `bold ${titleSize}px sans-serif`
-      ctx.fillStyle = '#333'
-      const part1 = '该图纸由 '
-      const part2 = 'DotsMap'
-      const part3 = ' 创作'
-      const w1 = ctx.measureText(part1).width
-      ctx.fillText(part1, fx + 18, titleY)
+      const line2Y = line1Y + subSize + Math.round(fh * 0.02)
       ctx.fillStyle = '#d63384'
-      const w2 = ctx.measureText(part2).width
-      ctx.fillText(part2, fx + 18 + w1, titleY)
+      ctx.fillText('DotsMap', col1X, line2Y)
+      const dmW = ctx.measureText('DotsMap').width
       ctx.fillStyle = '#333'
-      ctx.fillText(part3, fx + 18 + w1 + w2, titleY)
+      ctx.fillText(' 创作', col1X + dmW, line2Y)
 
-      ctx.fillStyle = '#888'
       ctx.font = `${subSize}px sans-serif`
+      ctx.fillStyle = '#888'
       ctx.fillText(
         `${store.currentBrand.name} · ${store.selectedPaletteLabel} · ${p.gridWidth}×${p.gridHeight} · 使用 ${sorted.length} 种颜色`,
-        fx + 18,
-        titleY + titleSize + Math.round(fh * 0.04),
+        col1X,
+        line2Y + titleSize + Math.round(fh * 0.03),
       )
       ctx.textBaseline = 'middle'
 
+      ctx.font = `bold ${titleSize}px sans-serif`
       const titleW = Math.max(
-        ctx.measureText('该图纸由 DotsMap 创作').width,
+        ctx.measureText('该图纸由').width,
+        ctx.measureText('DotsMap 创作').width,
         ctx.measureText(`${store.currentBrand.name} · ${store.selectedPaletteLabel} · ${p.gridWidth}×${p.gridHeight} · 使用 ${sorted.length} 种颜色`).width,
       )
 
