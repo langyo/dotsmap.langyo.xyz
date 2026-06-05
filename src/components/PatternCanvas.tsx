@@ -98,6 +98,15 @@ export default defineComponent({
       panY.value = (vpH.value - vH.value) / 2
     }
 
+    function fitToViewport() {
+      const d = imgData.value
+      if (!d || vpW.value === 0) return
+      const fitW = vpW.value / d.width
+      const fitH = vpH.value / d.height
+      zoom.value = Math.max(1, Math.floor(Math.min(fitW, fitH)))
+      centerView()
+    }
+
     function clampPan() {
       if (vW.value <= vpW.value) {
         panX.value = Math.round((vpW.value - vW.value) / 2)
@@ -591,15 +600,12 @@ export default defineComponent({
       if (p) buildCellIndex()
     })
 
-    watch(imgData, (d) => {
-      if (d) {
-        nextTick(() => {
-          zoom.value = 12
-          centerView()
-          buildMinimapBg()
-          drawMinimap()
-        })
-      }
+    watch(imgData, () => {
+      nextTick(() => {
+        fitToViewport()
+        buildMinimapBg()
+        drawMinimap()
+      })
     })
 
     onMounted(() => {
