@@ -9,43 +9,39 @@ export default defineComponent({
 
     const legendItems = computed(() => {
       const usage = store.colorUsage
-      const palette = store.selectedPalette
-      const usedColorIds = new Set(usage.keys())
-      const usedColors = palette.filter((c) => usedColorIds.has(c.id))
-
-      return usedColors.sort((a, b) => {
-        const ua = usage.get(a.id) ?? 0
-        const ub = usage.get(b.id) ?? 0
-        return ub - ua
-      })
+      const usedColors = store.selectedPalette.filter((c) => usage[c.id] > 0)
+      return usedColors.sort((a, b) => (usage[b.id] ?? 0) - (usage[a.id] ?? 0))
     })
 
     const totalBeads = computed(() => {
-      let sum = 0
-      store.colorUsage.forEach((v) => (sum += v))
-      return sum
+      return Object.values(store.colorUsage).reduce((s, v) => s + v, 0)
     })
 
     return () => (
       <div class="rounded-xl border border-border bg-surface/50 p-4 space-y-3">
         <h3 class="text-sm font-semibold">
-          颜色用量 ({legendItems.value.length}色 · 共{totalBeads.value}颗)
+          用量统计
+          <span class="font-normal text-text-secondary ml-1.5">
+            {legendItems.value.length}色 · {totalBeads.value}颗
+          </span>
         </h3>
 
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5">
-          {legendItems.value.map((c: PerlerColor) => {
-            const count = store.colorUsage.get(c.id) ?? 0
-            return (
-              <div key={c.id} class="flex items-center gap-1.5 text-xs">
-                <div
-                  class="w-3.5 h-3.5 rounded-sm border border-black/15 flex-shrink-0"
-                  style={{ backgroundColor: c.hex }}
-                />
-                <span class="truncate">{c.name}</span>
-                <span class="text-text-secondary ml-auto flex-shrink-0">×{count}</span>
-              </div>
-            )
-          })}
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-1">
+          {legendItems.value.map((col: PerlerColor) => (
+            <div
+              key={col.id}
+              class="flex items-center gap-1.5 text-xs py-1 px-1.5 rounded-md hover:bg-background transition-colors"
+            >
+              <div
+                class="w-3.5 h-3.5 rounded-sm border border-black/10 flex-shrink-0"
+                style={{ backgroundColor: col.hex }}
+              />
+              <span class="truncate flex-1">{col.name}</span>
+              <span class="text-text-secondary font-mono flex-shrink-0 tabular-nums">
+                {store.colorUsage[col.id] ?? 0}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     )

@@ -24,7 +24,7 @@ export const useAppStore = defineStore('app', () => {
   const magicX = ref<number>(0)
   const magicY = ref<number>(0)
   const isProcessing = ref<boolean>(false)
-  const colorUsage = ref<Map<string, number>>(new Map())
+  const colorUsage = ref<Record<string, number>>({})
 
   const paletteOptions = computed(() => paletteSets)
 
@@ -33,11 +33,16 @@ export const useAppStore = defineStore('app', () => {
     sourceDataURL.value = dataURL
     gridWidth.value = Math.min(50, img.width)
     gridHeight.value = Math.round(img.height * (gridWidth.value / img.width))
+    resetGeneratedState()
+  }
+
+  function resetGeneratedState() {
     beadPattern.value = null
     beadedImageData.value = null
     beadedDataURL.value = null
     processedImageData.value = null
     processedDataURL.value = null
+    colorUsage.value = {}
   }
 
   function setProcessedImage(imageData: ImageData, dataURL: string) {
@@ -50,7 +55,7 @@ export const useAppStore = defineStore('app', () => {
     beadedDataURL.value = dataURL
   }
 
-  function setBeadPattern(pattern: BeadPattern, usage: Map<string, number>) {
+  function setBeadPattern(pattern: BeadPattern, usage: Record<string, number>) {
     beadPattern.value = pattern
     colorUsage.value = usage
   }
@@ -69,6 +74,12 @@ export const useAppStore = defineStore('app', () => {
   function setGridSize(w: number, h: number) {
     gridWidth.value = Math.max(1, Math.min(200, w))
     gridHeight.value = Math.max(1, Math.min(200, h))
+  }
+
+  function resetPreprocess() {
+    processedImageData.value = null
+    processedDataURL.value = null
+    preprocessMode.value = 'none'
   }
 
   return {
@@ -100,5 +111,6 @@ export const useAppStore = defineStore('app', () => {
     setPalette,
     setPreprocessMode,
     setGridSize,
+    resetPreprocess,
   }
 })

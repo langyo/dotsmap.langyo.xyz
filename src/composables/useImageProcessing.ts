@@ -9,14 +9,13 @@ import {
   downsampleToGrid,
 } from '@/utils/imageProcessing'
 import { findClosestColor } from '@/utils/colorMatching'
-import type { BeadPattern, PatternCell } from '@/types'
+import type { BeadPattern } from '@/types'
 
 export function useImageProcessing() {
   const store = useAppStore()
 
   function dataURLFromImageData(imageData: ImageData): string {
-    const canvas = imageDataToCanvas(imageData)
-    return canvas.toDataURL()
+    return imageDataToCanvas(imageData).toDataURL()
   }
 
   async function handleFileUpload(file: File) {
@@ -28,8 +27,7 @@ export function useImageProcessing() {
       canvas.height = img.height
       const ctx = canvas.getContext('2d')!
       ctx.drawImage(img, 0, 0)
-      const dataURL = canvas.toDataURL()
-      store.setSourceImage(img, dataURL)
+      store.setSourceImage(img, canvas.toDataURL())
     } finally {
       store.isProcessing = false
     }
@@ -40,8 +38,7 @@ export function useImageProcessing() {
     store.isProcessing = true
 
     try {
-      let imageData = imageToImageData(store.sourceImage!)
-
+      let imageData = imageToImageData(store.sourceImage)
       imageData = resizeImage(imageData, 512)
 
       if (store.preprocessMode === 'remove-bg') {
@@ -50,8 +47,7 @@ export function useImageProcessing() {
         imageData = magicWandSelect(imageData, store.magicX, store.magicY, store.magicTolerance)
       }
 
-      const dataURL = dataURLFromImageData(imageData)
-      store.setProcessedImage(imageData, dataURL)
+      store.setProcessedImage(imageData, dataURLFromImageData(imageData))
     } finally {
       store.isProcessing = false
     }
@@ -59,24 +55,21 @@ export function useImageProcessing() {
 
   function generatePattern() {
     const source = store.processedImageData
-      ? store.processedImageData
-      : store.sourceImage
-        ? imageToImageData(store.sourceImage!)
-        : null
+      ?? (store.sourceImage ? imageToImageData(store.sourceImage) : null)
 
     if (!source) return
     store.isProcessing = true
 
     try {
       const resized = resizeImage(source, 512)
-
       const cells = downsampleToGrid(resized, store.gridWidth, store.gridHeight)
 
-      const patternCells: PatternCell[] = []
-      const usage = new Map<string, number>()
-
+      const patternCells: Array<{ x: number; y: number; colorId: string; colorName: string; hex: string }> = []
+      const usage: Record<string, number> = {}
       const beadedData = new Uint8ClampedArray(resized.width * resized.height * 4)
-      const opacityData = new Uint8ClampedArray(resized.width * resized.height * 4)
+
+      const cellW = Math.ceil(resized.width / store.gridWidth)
+      const cellH = Math.ceil(resized.height / store.gridHeight)
 
       for (const cell of cells) {
         if (cell.a < 128) continue
@@ -91,10 +84,8 @@ export function useImageProcessing() {
           hex: nearest.hex,
         })
 
-        usage.set(nearest.id, (usage.get(nearest.id) ?? 0) + 1)
+        usage[nearest.id] = (usage[nearest.id] ?? 0) + 1
 
-        const cellW = Math.ceil(resized.width / store.gridWidth)
-        const cellH = Math.ceil(resized.height / store.gridHeight)
         for (let py = cell.y * cellH; py < Math.min((cell.y + 1) * cellH, resized.height); py++) {
           for (let px = cell.x * cellW; px < Math.min((cell.x + 1) * cellW, resized.width); px++) {
             const idx = (py * resized.width + px) * 4
@@ -129,10 +120,5 @@ export function useImageProcessing() {
     store.$reset()
   }
 
-  return {
-    handleFileUpload,
-    applyPreprocessing,
-    generatePattern,
-    resetAll,
-  }
+  return { handleFileUpload, applyPreprocessing, generatePattern, resetAll }
 }

@@ -161,7 +161,7 @@ const allPerlerColors: PerlerColor[] = [
   c('Army Green', '#4B5320'),
 ]
 
-function hexDistance(a: PerlerColor, b: PerlerColor): number {
+function rgbDistance(a: PerlerColor, b: PerlerColor): number {
   const dr = a.r - b.r
   const dg = a.g - b.g
   const db = a.b - b.b
@@ -171,32 +171,32 @@ function hexDistance(a: PerlerColor, b: PerlerColor): number {
 function selectDiverse(colors: PerlerColor[], count: number): PerlerColor[] {
   if (colors.length <= count) return [...colors]
 
-  const essential: PerlerColor[] = []
   const essentialIds = new Set([
     'white', 'black', 'red', 'orange', 'yellow', 'green', 'dark-green',
     'light-blue', 'dark-blue', 'purple', 'brown', 'gray', 'pink', 'tan',
   ])
-  for (const c of colors) {
-    if (essentialIds.has(c.id) || essentialIds.has(c.name.toLowerCase())) {
-      essential.push(c)
+
+  const selected: PerlerColor[] = []
+  const selectedIds = new Set<string>()
+
+  for (const col of colors) {
+    if (essentialIds.has(col.id) && !selectedIds.has(col.id)) {
+      selected.push(col)
+      selectedIds.add(col.id)
     }
   }
 
-  const seen = new Set(essential.map((c) => c.id))
-  const remaining = colors.filter((c) => !seen.has(c.id))
-  seen.clear()
+  const remaining = colors.filter((c) => !selectedIds.has(c.id))
 
-  const selected: PerlerColor[] = [...essential]
-
-  while (selected.length < count) {
+  while (selected.length < count && remaining.length > 0) {
     let best: PerlerColor | null = null
     let bestMinDist = -1
 
     for (const c of remaining) {
-      if (seen.has(c.id)) continue
+      if (selectedIds.has(c.id)) continue
       let minDist = Infinity
       for (const s of selected) {
-        const d = hexDistance(c, s)
+        const d = rgbDistance(c, s)
         if (d < minDist) minDist = d
       }
       if (minDist > bestMinDist) {
@@ -207,7 +207,7 @@ function selectDiverse(colors: PerlerColor[], count: number): PerlerColor[] {
 
     if (!best) break
     selected.push(best)
-    seen.add(best.id)
+    selectedIds.add(best.id)
   }
 
   return selected
@@ -227,8 +227,7 @@ export const paletteSets: PaletteSet[] = [
 
 export function getPaletteByCount(count: number): PerlerColor[] {
   const found = paletteSets.find((p) => p.count === count)
-  if (found) return found.colors
-  return buildPalette(count)
+  return found ? found.colors : buildPalette(count)
 }
 
 export { allPerlerColors }

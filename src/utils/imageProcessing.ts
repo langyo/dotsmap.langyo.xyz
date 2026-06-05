@@ -12,15 +12,6 @@ export function loadImage(file: File): Promise<HTMLImageElement> {
   })
 }
 
-export function imageToDataURL(img: HTMLImageElement): string {
-  const canvas = document.createElement('canvas')
-  canvas.width = img.width
-  canvas.height = img.height
-  const ctx = canvas.getContext('2d')!
-  ctx.drawImage(img, 0, 0)
-  return canvas.toDataURL()
-}
-
 export function imageToImageData(img: HTMLImageElement): ImageData {
   const canvas = document.createElement('canvas')
   canvas.width = img.width
@@ -39,39 +30,36 @@ export function imageDataToCanvas(imageData: ImageData): HTMLCanvasElement {
   return canvas
 }
 
-export function removeBackground(
-  imageData: ImageData,
-  threshold: number = 30,
-): ImageData {
+export function removeBackground(imageData: ImageData, threshold = 30): ImageData {
   const { data, width, height } = imageData
   const result = new Uint8ClampedArray(data)
 
-  const corners = [
+  const corners: Array<[number, number]> = [
     [0, 0],
     [width - 1, 0],
     [0, height - 1],
     [width - 1, height - 1],
   ]
 
-  const bgColors: Array<[number, number, number]> = []
+  let sr = 0
+  let sg = 0
+  let sb = 0
   for (const [cx, cy] of corners) {
     const idx = (cy * width + cx) * 4
-    bgColors.push([data[idx], data[idx + 1], data[idx + 2]])
+    sr += data[idx]
+    sg += data[idx + 1]
+    sb += data[idx + 2]
   }
 
-  const avgBg = [
-    Math.round(bgColors.reduce((s, c) => s + c[0], 0) / 4),
-    Math.round(bgColors.reduce((s, c) => s + c[1], 0) / 4),
-    Math.round(bgColors.reduce((s, c) => s + c[2], 0) / 4),
-  ]
+  const avgR = sr / 4
+  const avgG = sg / 4
+  const avgB = sb / 4
 
   for (let i = 0; i < data.length; i += 4) {
-    const dr = data[i] - avgBg[0]
-    const dg = data[i + 1] - avgBg[1]
-    const db = data[i + 2] - avgBg[2]
-    const dist = Math.sqrt(dr * dr + dg * dg + db * db)
-
-    if (dist < threshold) {
+    const dr = data[i] - avgR
+    const dg = data[i + 1] - avgG
+    const db = data[i + 2] - avgB
+    if (Math.sqrt(dr * dr + dg * dg + db * db) < threshold) {
       result[i + 3] = 0
     }
   }
@@ -83,7 +71,7 @@ export function magicWandSelect(
   imageData: ImageData,
   x: number,
   y: number,
-  tolerance: number = 32,
+  tolerance = 32,
 ): ImageData {
   const { data, width, height } = imageData
   const result = new Uint8ClampedArray(data)
@@ -108,9 +96,8 @@ export function magicWandSelect(
     const dr = data[idx] - targetR
     const dg = data[idx + 1] - targetG
     const db = data[idx + 2] - targetB
-    const dist = Math.sqrt(dr * dr + dg * dg + db * db)
 
-    if (dist <= tolerance) {
+    if (Math.sqrt(dr * dr + dg * dg + db * db) <= tolerance) {
       stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1])
     } else {
       result[idx + 3] = 0
@@ -120,10 +107,7 @@ export function magicWandSelect(
   return new ImageData(result, width, height)
 }
 
-export function resizeImage(
-  imageData: ImageData,
-  maxDimension: number,
-): ImageData {
+export function resizeImage(imageData: ImageData, maxDimension: number): ImageData {
   const { width, height } = imageData
   if (width <= maxDimension && height <= maxDimension) return imageData
 
@@ -136,20 +120,31 @@ export function resizeImage(
   dstCanvas.width = newWidth
   dstCanvas.height = newHeight
   const ctx = dstCanvas.getContext('2d')!
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
   ctx.drawImage(srcCanvas, 0, 0, newWidth, newHeight)
 
   return ctx.getImageData(0, 0, newWidth, newHeight)
+}
+
+export interface GridCell {
+  r: number
+  g: number
+  b: number
+  a: number
+  x: number
+  y: number
 }
 
 export function downsampleToGrid(
   imageData: ImageData,
   gridWidth: number,
   gridHeight: number,
-): Array<{ r: number; g: number; b: number; a: number; x: number; y: number }> {
+): GridCell[] {
   const { data, width, height } = imageData
   const cellW = width / gridWidth
   const cellH = height / gridHeight
-  const cells: Array<{ r: number; g: number; b: number; a: number; x: number; y: number }> = []
+  const cells: GridCell[] = []
 
   for (let gy = 0; gy < gridHeight; gy++) {
     for (let gx = 0; gx < gridWidth; gx++) {
@@ -178,10 +173,10 @@ export function downsampleToGrid(
       cells.push({
         x: gx,
         y: gy,
-        r: Math.round(sr / count),
-        g: Math.round(sg / count),
-        b: Math.round(sb / count),
-        a: Math.round(sa / count),
+        r: count > 0 ? Math.round(sr / count) : 0,
+        g: count > 0 ? Math.round(sg / count) : 0,
+        b: count > 0 ? Math.round(sb / count) : 0,
+        a: count > 0 ? Math.round(sa / count) : 0,
       })
     }
   }

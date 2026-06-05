@@ -1,8 +1,17 @@
-import { ref, watchEffect } from 'vue'
+import { ref } from 'vue'
 
 const isDark = ref(false)
 
 export function useDarkMode() {
+  function applyTheme() {
+    if (isDark.value) {
+      document.documentElement.setAttribute('data-mode', 'dark')
+    } else {
+      document.documentElement.removeAttribute('data-mode')
+    }
+    localStorage.setItem('dotsmap-dark', String(isDark.value))
+  }
+
   function init() {
     const stored = localStorage.getItem('dotsmap-dark')
     if (stored !== null) {
@@ -11,15 +20,6 @@ export function useDarkMode() {
       isDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches
     }
     applyTheme()
-  }
-
-  function applyTheme() {
-    if (isDark.value) {
-      document.documentElement.setAttribute('data-mode', 'dark')
-    } else {
-      document.documentElement.removeAttribute('data-mode')
-    }
-    localStorage.setItem('dotsmap-dark', String(isDark.value))
   }
 
   function toggle() {

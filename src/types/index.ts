@@ -1,10 +1,3 @@
-export interface ImageState {
-  original: HTMLImageElement | null
-  processed: ImageData | null
-  width: number
-  height: number
-}
-
 export interface PatternCell {
   x: number
   y: number
@@ -25,11 +18,3 @@ export interface BeadPattern {
 }
 
 export type PreprocessMode = 'none' | 'remove-bg' | 'magic-wand'
-
-export interface PreprocessSettings {
-  mode: PreprocessMode
-  bgThreshold: number
-  tolerance: number
-  magicWandX: number
-  magicWandY: number
-}
