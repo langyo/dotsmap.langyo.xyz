@@ -37,7 +37,7 @@ export default defineComponent({
 
     return () => (
       <div class="panel">
-        <button class="flex items-center justify-between w-full" onClick={() => (isExpanded.value = !isExpanded.value)}>
+        <button class="flex items-center justify-between w-full rounded-2xl px-1 py-0.5 hover:bg-surface/60 transition-colors" onClick={() => (isExpanded.value = !isExpanded.value)}>
           <h3 class="panel-title">
             <SwatchBook size={16} />
             {store.currentBrand.name} 色卡

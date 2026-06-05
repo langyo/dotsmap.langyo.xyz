@@ -49,7 +49,7 @@ export default defineComponent({
 
         <div class="space-y-1">
           <button
-            class="flex items-center gap-1 text-xs text-text-secondary hover:text-primary transition-colors"
+            class="flex items-center gap-1 text-xs text-text-secondary hover:text-primary transition-colors rounded-lg px-1 py-0.5 hover:bg-surface/40"
             onClick={() => (showCategoryFilter.value = !showCategoryFilter.value)}
           >
             {categoryLabel[store.currentBrand.colors[0]?.category] ? '分类筛选' : ''}
@@ -78,7 +78,7 @@ export default defineComponent({
         </div>
 
         <details>
-          <summary class="text-xs text-text-secondary cursor-pointer hover:text-primary transition-colors">
+          <summary class="text-xs text-text-secondary cursor-pointer hover:text-primary transition-colors py-0.5 rounded-lg">
             色板预览 ({filteredPalette.value.length})
           </summary>
           <div class="flex flex-wrap gap-0.5 max-h-36 overflow-y-auto p-1 mt-1.5 rounded-2xl bg-background">
