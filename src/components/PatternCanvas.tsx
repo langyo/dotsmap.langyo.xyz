@@ -9,7 +9,10 @@ const MM_MAX = 160
 
 export default defineComponent({
   name: 'PatternCanvas',
-  setup() {
+  props: {
+    fullHeight: { type: Boolean, default: false },
+  },
+  setup(props) {
     const store = useAppStore()
     const { handleFileUpload, applyPreprocessing, resetAll } = useImageProcessing()
     const canvasRef = ref<HTMLCanvasElement>()
@@ -495,52 +498,54 @@ export default defineComponent({
       return 'default'
     })
 
-    return () => (
-      <div class="panel">
-        <div class="flex items-center justify-between flex-wrap gap-2">
-          <h3 class="panel-title">
-            {store.beadPattern ? `图纸 ${store.beadPattern.gridWidth}×${store.beadPattern.gridHeight}` : '预览'}
-          </h3>
-          {store.beadPattern ? (
-            <div class="flex items-center gap-1.5 flex-wrap">
-              <div class="flex items-center gap-0.5 bg-background rounded-2xl border border-border px-1 py-0.5">
-                <button class="btn-icon" onClick={() => doZoom(-1)} title="缩小" aria-label="缩小"><ZoomOut size={14} /></button>
-                <span class="text-xs font-mono w-10 text-center select-none">{Math.round(zoom.value * 100)}%</span>
-                <button class="btn-icon" onClick={() => doZoom(1)} title="放大" aria-label="放大"><ZoomIn size={14} /></button>
-                <button class="btn-icon" onClick={resetView} title="重置视图" aria-label="重置视图"><Maximize2 size={14} /></button>
+    return () => {
+      const shouldFill = props.fullHeight && hasContent.value
+      return (
+        <div class={`panel ${shouldFill ? 'h-full' : ''}`}>
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <h3 class="panel-title">
+              {store.beadPattern ? `图纸 ${store.beadPattern.gridWidth}×${store.beadPattern.gridHeight}` : '预览'}
+            </h3>
+            {store.beadPattern ? (
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <div class="flex items-center gap-0.5 bg-background rounded-2xl border border-border px-1 py-0.5">
+                  <button class="btn-icon" onClick={() => doZoom(-1)} title="缩小" aria-label="缩小"><ZoomOut size={14} /></button>
+                  <span class="text-xs font-mono w-10 text-center select-none">{Math.round(zoom.value * 100)}%</span>
+                  <button class="btn-icon" onClick={() => doZoom(1)} title="放大" aria-label="放大"><ZoomIn size={14} /></button>
+                  <button class="btn-icon" onClick={resetView} title="重置视图" aria-label="重置视图"><Maximize2 size={14} /></button>
+                </div>
+                <div class="flex items-center gap-1.5 text-xs select-none">
+                  <Grid3x3 size={14} />
+                  <button
+                    class={`switch ${showGrid.value ? 'active' : ''}`}
+                    role="switch"
+                    aria-checked={showGrid.value}
+                    aria-label="网格"
+                    onClick={() => showGrid.value = !showGrid.value}
+                  />
+                </div>
+                <div class="flex gap-0.5">
+                  <button class="btn btn-sm" onClick={downloadPNG}>PNG</button>
+                  <button class="btn btn-sm" onClick={downloadSVG}>SVG</button>
+                  <button class="btn btn-sm" onClick={downloadCSV}>CSV</button>
+                </div>
               </div>
-              <div class="flex items-center gap-1.5 text-xs select-none">
-                <Grid3x3 size={14} />
-                <button
-                  class={`switch ${showGrid.value ? 'active' : ''}`}
-                  role="switch"
-                  aria-checked={showGrid.value}
-                  aria-label="网格"
-                  onClick={() => showGrid.value = !showGrid.value}
-                />
+            ) : hasContent.value ? (
+              <div class="flex gap-1">
+                <button class="btn btn-sm" onClick={() => fileInput.value?.click()}>更换图片</button>
+                <button class="btn btn-sm btn-danger" onClick={resetAll}><X size={12} /> 清除</button>
               </div>
-              <div class="flex gap-0.5">
-                <button class="btn btn-sm" onClick={downloadPNG}>PNG</button>
-                <button class="btn btn-sm" onClick={downloadSVG}>SVG</button>
-                <button class="btn btn-sm" onClick={downloadCSV}>CSV</button>
-              </div>
-            </div>
-          ) : hasContent.value ? (
-            <div class="flex gap-1">
-              <button class="btn btn-sm" onClick={() => fileInput.value?.click()}>更换图片</button>
-              <button class="btn btn-sm btn-danger" onClick={resetAll}><X size={12} /> 清除</button>
-            </div>
-          ) : null}
-        </div>
+            ) : null}
+          </div>
 
-        <div
-          ref={vpRef}
-          class="canvas-container"
-          style={{ cursor: vpCursor.value }}
-          onWheel={onWheel}
-          onMousedown={onVpMouseDown}
-          onMousemove={updateHover}
-        >
+          <div
+            ref={vpRef}
+            class={`canvas-container ${shouldFill ? 'canvas-fill' : ''}`}
+            style={{ cursor: vpCursor.value }}
+            onWheel={onWheel}
+            onMousedown={onVpMouseDown}
+            onMousemove={updateHover}
+          >
           {hasContent.value ? (
             <>
               <div
@@ -604,6 +609,7 @@ export default defineComponent({
 
         <input ref={fileInput} type="file" accept="image/*" class="hidden" onChange={onFileChange} />
       </div>
-    )
+      )
+    }
   },
 })

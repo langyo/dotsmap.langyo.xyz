@@ -259,6 +259,12 @@ input[type="range"] {
   @media (pointer: coarse) {
     touch-action: none;
   }
+
+  &.canvas-fill {
+    min-height: unset;
+    max-height: none;
+    flex: 1 1 0;
+  }
 }
 
 .canvas-transform-layer {

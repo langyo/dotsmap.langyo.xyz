@@ -9,7 +9,6 @@ export default defineComponent({
   setup() {
     const store = useAppStore()
     const { generatePattern } = useImageProcessing()
-    const showCategoryFilter = ref(false)
     const selectedCategory = ref<BeadCategory | null>(null)
 
     const categories = computed(() => {
@@ -58,51 +57,37 @@ export default defineComponent({
           </div>
         </div>
 
-        <div class="space-y-1">
-          <button
-            class="flex items-center gap-1 text-xs text-text-secondary hover:text-primary transition-colors rounded-lg px-2 py-1 hover:bg-surface/40"
-            onClick={() => (showCategoryFilter.value = !showCategoryFilter.value)}
-          >
-            {categoryLabel[store.currentBrand.colors[0]?.category] ? '分类筛选' : ''}
-            <span class="text-primary">{showCategoryFilter.value ? '收起' : '展开'}</span>
-          </button>
-          {showCategoryFilter.value && (
-            <div class="flex flex-wrap gap-1 animate-fade-in">
+        {categories.value.length > 1 && (
+          <div class="flex flex-wrap gap-1">
+            <button
+              key="all"
+              class={`btn btn-sm ${!selectedCategory.value ? 'btn-primary' : ''}`}
+              onClick={() => (selectedCategory.value = null)}
+            >
+              全部({store.selectedPalette.length})
+            </button>
+            {categories.value.map(([cat, cnt]) => (
               <button
-                key="all"
-                class={`btn btn-sm ${!selectedCategory.value ? 'btn-primary' : ''}`}
-                onClick={() => (selectedCategory.value = null)}
+                key={cat}
+                class={`btn btn-sm ${selectedCategory.value === cat ? 'btn-primary' : ''}`}
+                onClick={() => (selectedCategory.value = selectedCategory.value === cat ? null : cat)}
               >
-                全部({store.selectedPalette.length})
+                {categoryLabel[cat]}({cnt})
               </button>
-              {categories.value.map(([cat, cnt]) => (
-                <button
-                  key={cat}
-                  class={`btn btn-sm ${selectedCategory.value === cat ? 'btn-primary' : ''}`}
-                  onClick={() => (selectedCategory.value = selectedCategory.value === cat ? null : cat)}
-                >
-                  {categoryLabel[cat]}({cnt})
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <details>
-          <summary class="text-xs text-text-secondary cursor-pointer hover:text-primary transition-colors py-0.5 rounded-lg">
-            色板预览 ({filteredPalette.value.length})
-          </summary>
-          <div class="flex flex-wrap gap-0.5 max-h-36 overflow-y-auto p-1 mt-1.5 rounded-2xl bg-background">
-            {filteredPalette.value.map((col) => (
-              <div
-                key={col.code}
-                class="w-4 h-4 rounded-full border border-black/10 flex-shrink-0 transition-transform hover:scale-150 hover:z-10"
-                style={{ backgroundColor: col.hex }}
-                title={`${col.code} ${col.name} (${col.hex})`}
-              />
             ))}
           </div>
-        </details>
+        )}
+
+        <div class="flex flex-wrap gap-0.5 max-h-40 overflow-y-auto p-1 rounded-2xl bg-background">
+          {filteredPalette.value.map((col) => (
+            <div
+              key={col.code}
+              class="w-4 h-4 rounded-full border border-black/10 flex-shrink-0 transition-transform hover:scale-150 hover:z-10"
+              style={{ backgroundColor: col.hex }}
+              title={`${col.code} ${col.name} (${col.hex})`}
+            />
+          ))}
+        </div>
 
         <div class="flex gap-2 text-xs">
           <label class="flex-1">

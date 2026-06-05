@@ -5,8 +5,7 @@ import PreprocessPanel from './PreprocessPanel'
 import PaletteSelector from './PaletteSelector'
 import PatternCanvas from './PatternCanvas'
 import BeadLegend from './BeadLegend'
-import ColorSwatchPanel from './ColorSwatchPanel'
-import { Sun, Moon, SlidersHorizontal, ListFilter, X, Info, Github } from 'lucide-vue-next'
+import { Sun, Moon, Menu, X, Info, Github, ListFilter } from 'lucide-vue-next'
 
 export default defineComponent({
   name: 'DotsMapApp',
@@ -23,16 +22,6 @@ export default defineComponent({
         rightOpen.value = false
       }
     })
-
-    function toggleLeft() {
-      leftOpen.value = !leftOpen.value
-      if (leftOpen.value) rightOpen.value = false
-    }
-
-    function toggleRight() {
-      rightOpen.value = !rightOpen.value
-      if (rightOpen.value) leftOpen.value = false
-    }
 
     function closeAll() {
       leftOpen.value = false
@@ -52,8 +41,8 @@ export default defineComponent({
       const anyOpen = leftOpen.value || rightOpen.value
 
       const footer = (
-        <footer class="border-t border-border bg-background/80 backdrop-blur-md px-4 py-4 mt-auto">
-          <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-text-secondary">
+        <footer class="border-t border-border bg-background/80 backdrop-blur-md px-4 py-3">
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-1 text-xs text-text-secondary px-2">
             <span>© {new Date().getFullYear()} DotsMap</span>
             <span>备案信息占位</span>
           </div>
@@ -93,13 +82,20 @@ export default defineComponent({
       )
 
       const header = (
-        <header class="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-md px-4 sm:py-3 py-2">
-          <div class="max-w-7xl mx-auto flex items-center justify-between">
-            <h1 class="text-lg font-bold tracking-tight select-none">
-              <span class="text-primary">DotsMap</span>
-              <span class="hidden sm:inline text-text-secondary font-normal ml-2 text-sm">拼豆图纸生成器</span>
-            </h1>
+        <header class="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-md px-3 py-2 flex-shrink-0">
+          <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
+              {hasSource && (
+                <button class="btn-icon lg:!hidden" onClick={() => leftOpen.value = !leftOpen.value} title="配置面板">
+                  <Menu size={18} />
+                </button>
+              )}
+              <h1 class="text-lg font-bold tracking-tight select-none">
+                <span class="text-primary">DotsMap</span>
+                <span class="hidden sm:inline text-text-secondary font-normal ml-2 text-sm">拼豆图纸生成器</span>
+              </h1>
+            </div>
+            <div class="flex items-center gap-1.5">
               <button class="btn-icon" onClick={() => showAbout.value = true} title="关于">
                 <Info size={16} />
               </button>
@@ -115,14 +111,13 @@ export default defineComponent({
         return (
           <div class="min-h-screen bg-background text-text font-sans transition-colors duration-200 flex flex-col">
             {header}
-            <main class="max-w-7xl mx-auto sm:p-4 p-3 flex-1">
-              <div class="grid lg:grid-cols-12 sm:gap-4 gap-3">
-                <div class="lg:col-span-4 xl:col-span-3 sm:space-y-3 space-y-2">
-                  <PaletteSelector />
-                </div>
-                <div class="lg:col-span-8 xl:col-span-9 sm:space-y-3 space-y-2">
+            <main class="p-3 flex-1">
+              <div class="flex flex-col gap-3 lg:grid lg:grid-cols-[320px_1fr]">
+                <div class="order-1 lg:order-2">
                   <PatternCanvas />
-                  <ColorSwatchPanel />
+                </div>
+                <div class="order-2 lg:order-1 space-y-2">
+                  <PaletteSelector />
                 </div>
               </div>
             </main>
@@ -133,10 +128,10 @@ export default defineComponent({
       }
 
       return (
-        <div class="min-h-screen bg-background text-text font-sans transition-colors duration-200 flex flex-col">
+        <div class="h-[100dvh] bg-background text-text font-sans transition-colors duration-200 flex flex-col overflow-hidden">
           {header}
-          <main class="sm:px-4 px-3 py-3 flex-1">
-            <div class="drawer-layout">
+          <div class="flex-1 min-h-0 p-2 lg:p-3">
+            <div class="drawer-layout" style={{ height: '100%', alignItems: 'stretch' }}>
               <aside class={`drawer-panel dp-l ${leftOpen.value ? 'open' : ''}`}>
                 <div class="drawer-head">
                   <span class="text-sm font-semibold">配置面板</span>
@@ -146,34 +141,31 @@ export default defineComponent({
                 <PreprocessPanel />
               </aside>
 
-              <div class="flex-1 min-w-0">
-                <PatternCanvas />
+              <div class="flex-1 min-w-0 min-h-0">
+                <PatternCanvas fullHeight />
               </div>
 
               {hasPattern && (
                 <aside class={`drawer-panel dp-r ${rightOpen.value ? 'open' : ''}`}>
                   <div class="drawer-head">
-                    <span class="text-sm font-semibold">统计 & 色卡</span>
+                    <span class="text-sm font-semibold">统计</span>
                     <button class="btn-icon" onClick={() => rightOpen.value = false}><X size={14} /></button>
                   </div>
                   <BeadLegend />
-                  <ColorSwatchPanel />
                 </aside>
               )}
             </div>
-          </main>
+          </div>
 
-          <button class="drawer-toggle dt-l" onClick={toggleLeft} title="配置面板">
-            <SlidersHorizontal size={14} />
-          </button>
+          <div class="hidden lg:block flex-shrink-0">{footer}</div>
+
           {hasPattern && (
-            <button class="drawer-toggle dt-r" onClick={toggleRight} title="统计 & 色卡">
+            <button class="drawer-toggle dt-r lg:!hidden" onClick={() => rightOpen.value = !rightOpen.value} title="统计">
               <ListFilter size={14} />
             </button>
           )}
 
           {anyOpen && <div class="drawer-backdrop" onClick={closeAll} />}
-          {footer}
           {aboutOverlay}
         </div>
       )
