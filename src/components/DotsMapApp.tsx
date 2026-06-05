@@ -40,9 +40,8 @@ export default defineComponent({
 
       const footer = (
         <footer class="border-t border-border bg-background/80 backdrop-blur-md px-4 py-3 flex-shrink-0">
-          <div class="flex flex-col sm:flex-row items-center justify-between gap-1 text-xs text-text-secondary px-2">
-            <span>© {new Date().getFullYear()} DotsMap</span>
-            <span>备案信息占位</span>
+          <div class="flex items-center justify-center text-xs text-text-secondary px-2">
+            <span>© {new Date().getFullYear()} dotsmap.langyo.xyz</span>
           </div>
         </footer>
       )
