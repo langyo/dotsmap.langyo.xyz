@@ -4,7 +4,7 @@ import { useImageProcessing } from '@/composables/useImageProcessing'
 import type { BeadPattern } from '@/types'
 import { ZoomIn, ZoomOut, Maximize2, Grid3x3, Hash, ImagePlus, X, Share2 } from 'lucide-vue-next'
 
-const ZOOM_LEVELS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4]
+const ZOOM_LEVELS = [1, 2, 3, 4, 6, 8, 10, 12, 16, 20, 24, 32]
 const SB_SIZE = 10
 const MM_MAX = 160
 
@@ -163,7 +163,7 @@ export default defineComponent({
         if (showGrid.value && p) {
           drawGrid(ctx, w, h, p.gridWidth, p.gridHeight)
         }
-        if (showCodes.value && p && zoom.value >= 2) {
+        if (showCodes.value && p && zoom.value >= 6) {
           drawCodes(ctx, w, h, p)
         }
       } else if (url) {
@@ -594,6 +594,7 @@ export default defineComponent({
     watch(imgData, (d) => {
       if (d) {
         nextTick(() => {
+          zoom.value = 12
           centerView()
           buildMinimapBg()
           drawMinimap()
