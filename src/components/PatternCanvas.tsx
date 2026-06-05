@@ -658,7 +658,7 @@ export default defineComponent({
               <div class="flex items-center gap-1.5 flex-wrap">
                 <div class="flex items-center gap-0.5 bg-background rounded-2xl border border-border px-1 py-0.5">
                   <button class="btn-icon" onClick={() => doZoom(-1)} title="缩小" aria-label="缩小"><ZoomOut size={14} /></button>
-                  <span class="text-xs font-mono w-10 text-center select-none">{Math.round(zoom.value * 100)}%</span>
+                  <span class="text-xs font-mono w-10 text-center select-none">{Math.round(zoom.value / 12 * 100)}%</span>
                   <button class="btn-icon" onClick={() => doZoom(1)} title="放大" aria-label="放大"><ZoomIn size={14} /></button>
                   <button class="btn-icon" onClick={resetView} title="重置视图" aria-label="重置视图"><Maximize2 size={14} /></button>
                 </div>
