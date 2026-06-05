@@ -533,29 +533,35 @@ export default defineComponent({
       ctx.font = `bold ${titleSize}px sans-serif`
       ctx.textBaseline = 'middle'
       ctx.textAlign = 'left'
-      ctx.fillText('该图纸由 DotsMap 创作', fx + 18, fy + fh * 0.15)
+      ctx.fillText('该图纸由 DotsMap 创作', fx + 18, fy + fh * 0.4)
 
       ctx.fillStyle = '#888'
       ctx.font = `${subSize}px sans-serif`
       ctx.fillText(
         `${store.currentBrand.name} · ${store.selectedPaletteLabel} · ${p.gridWidth}×${p.gridHeight} · 使用 ${sorted.length} 种颜色`,
         fx + 18,
-        fy + fh * 0.28,
+        fy + fh * 0.6,
+      )
+
+      const titleW = Math.max(
+        ctx.measureText('该图纸由 DotsMap 创作').width,
+        ctx.measureText(`${store.currentBrand.name} · ${store.selectedPaletteLabel} · ${p.gridWidth}×${p.gridHeight} · 使用 ${sorted.length} 种颜色`).width,
       )
 
       const qrSize = Math.round(fh * 0.55)
-      let qrX = fx + fw - qrSize - 18
+      const qrX = fx + fw - qrSize - 18
+      const qrRightEdge = qrX - 24
 
       try {
         const qrCanvas = await generateQRCanvas(qrSize)
-        const qrY = fy + fh * 0.12
+        const qrY = fy + Math.round((fh - qrSize) * 0.3)
         ctx.drawImage(qrCanvas, qrX, qrY)
 
         ctx.fillStyle = '#999'
         const urlSize = Math.round(fh * 0.065)
         ctx.font = `${urlSize}px sans-serif`
         ctx.textAlign = 'center'
-        ctx.fillText('dotsmap.langyo.xyz', qrX + qrSize / 2, qrY + qrSize + urlSize + 4)
+        ctx.fillText('dotsmap.langyo.xyz', qrX + qrSize / 2, qrY + qrSize + urlSize + 6)
       } catch {
         ctx.fillStyle = '#999'
         ctx.font = `${subSize}px sans-serif`
@@ -566,44 +572,45 @@ export default defineComponent({
       ctx.textAlign = 'left'
 
       if (sorted.length > 0) {
-        const dotsAreaW = qrX - (fx + 18) - 18
-        const dotsAreaTop = fy + fh * 0.38
-        const dotsAreaH = fh * 0.58
-        const dotSize = Math.round(dotsAreaH / 3)
-        const gap = Math.round(dotSize * 0.18)
-        const step = dotSize + gap
-        const fontSize = Math.round(dotSize * 0.3)
-        const colsPerRow = Math.max(1, Math.floor(dotsAreaW / step))
+        const dotAreaLeft = fx + 18 + titleW + 24
+        const dotAreaW = qrRightEdge - dotAreaLeft
+        if (dotAreaW > 20) {
+          const dotH = fh * 0.82
+          const dotSize = Math.round(dotH / 3)
+          const gap = Math.round(dotSize * 0.15)
+          const step = dotSize + gap
+          const fontSize = Math.round(dotSize * 0.3)
+          const colsPerRow = Math.max(1, Math.floor(dotAreaW / step))
+          const dotStartX = dotAreaLeft + Math.round((dotAreaW - Math.min(sorted.length, colsPerRow) * step + gap) / 2)
+          const dotStartY = fy + Math.round((fh - 3 * step + gap) / 2)
 
-        const gridW = Math.min(sorted.length, colsPerRow) * step - gap
-        const dotStartX = fx + 18 + Math.round((dotsAreaW - gridW) * 0.35)
+          for (let i = 0; i < sorted.length; i++) {
+            const col = i % colsPerRow
+            const row = Math.floor(i / colsPerRow)
+            if (row >= 3) break
+            const cx = dotStartX + col * step + dotSize / 2
+            const cy = dotStartY + row * step + dotSize / 2
 
-        for (let i = 0; i < sorted.length; i++) {
-          const col = i % colsPerRow
-          const row = Math.floor(i / colsPerRow)
-          if (row >= 3) break
-          const cx = dotStartX + col * step + dotSize / 2
-          const cy = dotsAreaTop + row * step + dotSize / 2
+            ctx.beginPath()
+            ctx.arc(cx, cy, dotSize / 2, 0, Math.PI * 2)
+            ctx.fillStyle = sorted[i].hex
+            ctx.fill()
+            ctx.strokeStyle = 'rgba(0,0,0,0.12)'
+            ctx.lineWidth = Math.max(1, dotSize * 0.04)
+            ctx.stroke()
 
-          ctx.beginPath()
-          ctx.arc(cx, cy, dotSize / 2, 0, Math.PI * 2)
-          ctx.fillStyle = sorted[i].hex
-          ctx.fill()
-          ctx.strokeStyle = 'rgba(0,0,0,0.12)'
-          ctx.lineWidth = Math.max(1, dotSize * 0.04)
-          ctx.stroke()
-
-          const lr = parseInt(sorted[i].hex.slice(1, 3), 16) / 255
-          const lg = parseInt(sorted[i].hex.slice(3, 5), 16) / 255
-          const lb = parseInt(sorted[i].hex.slice(5, 7), 16) / 255
-          const lum = 0.299 * lr + 0.587 * lg + 0.114 * lb
-          ctx.fillStyle = lum > 0.45 ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)'
-          ctx.font = `bold ${fontSize}px monospace`
-          ctx.textAlign = 'center'
-          ctx.textBaseline = 'middle'
-          ctx.fillText(sorted[i].code, cx, cy)
+            const lr = parseInt(sorted[i].hex.slice(1, 3), 16) / 255
+            const lg = parseInt(sorted[i].hex.slice(3, 5), 16) / 255
+            const lb = parseInt(sorted[i].hex.slice(5, 7), 16) / 255
+            const lum = 0.299 * lr + 0.587 * lg + 0.114 * lb
+            ctx.fillStyle = lum > 0.45 ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)'
+            ctx.font = `bold ${fontSize}px monospace`
+            ctx.textAlign = 'center'
+            ctx.textBaseline = 'middle'
+            ctx.fillText(sorted[i].code, cx, cy)
+          }
+          ctx.textAlign = 'left'
         }
-        ctx.textAlign = 'left'
       }
     }
 
