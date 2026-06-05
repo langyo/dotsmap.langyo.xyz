@@ -57,7 +57,7 @@ export default defineComponent({
 
         {store.sourceDataURL ? (
           <div class="space-y-2">
-            <div class="rounded-lg overflow-hidden border border-border bg-checkerboard">
+            <div class="rounded-2xl overflow-hidden border border-border bg-checkerboard">
               <img src={store.sourceDataURL} alt="Source" class="w-full object-contain max-h-56" />
             </div>
             <div class="flex gap-2">

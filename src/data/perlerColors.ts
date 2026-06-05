@@ -2,11 +2,14 @@ import type { BrandDef, BeadColor, ColorFamily } from './brands/types'
 import { perler } from './brands/perler'
 import { hama } from './brands/hama'
 import { artkal } from './brands/artkal'
+import { nabbi } from './brands/nabbi'
+import { artkalc } from './brands/artkalc'
+import { pyssla } from './brands/pyssla'
 
 export type { BeadColor, BrandDef, ColorFamily }
-export { perler, hama, artkal }
+export { perler, hama, artkal, nabbi, artkalc, pyssla }
 
-export const allBrands: BrandDef[] = [perler, hama, artkal]
+export const allBrands: BrandDef[] = [perler, hama, artkal, nabbi, artkalc, pyssla]
 
 export const familyOrder: ColorFamily[] = [
   'white', 'gray', 'black',
@@ -20,6 +23,18 @@ export const familyLabel: Record<ColorFamily, string> = {
   red: '红', pink: '粉', orange: '橙', yellow: '黄',
   green: '绿', blue: '蓝', purple: '紫', brown: '棕',
   skin: '肤色', metal: '金属', special: '特效',
+}
+
+export type BeadCategory = BeadColor['category']
+
+export const categoryLabel: Record<BeadCategory, string> = {
+  solid: '标准色',
+  pearl: '珠光',
+  neon: '荧光',
+  glow: '夜光',
+  metallic: '金属',
+  glitter: '闪粉',
+  striped: '条纹',
 }
 
 export interface PaletteSet {

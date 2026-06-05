@@ -37,6 +37,7 @@ export const useAppStore = defineStore('app', () => {
   const magicY = ref<number>(0)
   const isProcessing = ref<boolean>(false)
   const colorUsage = ref<Record<string, number>>({})
+  const highlightCode = ref<string | null>(null)
   const error = ref<string | null>(null)
 
   const brands = computed(() => allBrands)
@@ -145,7 +146,7 @@ export const useAppStore = defineStore('app', () => {
     beadedImageData, beadedDataURL, beadPattern,
     gridWidth, gridHeight, beadSize,
     preprocessMode, bgThreshold, magicTolerance, magicX, magicY,
-    isProcessing, colorUsage, brands, error,
+    isProcessing, colorUsage, highlightCode, brands, error,
     setSourceImage, setBrand,
     setProcessedImage, setBeadedImage, setBeadPattern,
     setPalette, setPreprocessMode, setGridSize, resetPreprocess,

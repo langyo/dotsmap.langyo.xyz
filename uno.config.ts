@@ -18,7 +18,7 @@ export default defineConfig({
       accent: 'rgb(var(--color-accent) / <alpha-value>)',
       text: {
         DEFAULT: "rgb(var(--color-text) / <alpha-value>)",
-        secondary: "rgb(var(--color-text) / <alpha-value>)",
+        secondary: "rgb(var(--color-muted) / <alpha-value>)",
       },
       muted: 'rgb(var(--color-muted) / <alpha-value>)',
       border: 'rgb(var(--color-border) / 15%)',

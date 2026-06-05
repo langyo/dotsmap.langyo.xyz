@@ -1,13 +1,11 @@
-import { defineComponent, computed, ref } from 'vue'
+import { defineComponent, computed } from 'vue'
 import { useAppStore } from '@/stores/app'
 import type { BeadColor } from '@/data/perlerColors'
-import { ListFilter } from 'lucide-vue-next'
 
 export default defineComponent({
   name: 'BeadLegend',
   setup() {
     const store = useAppStore()
-    const filterCode = ref<string | null>(null)
 
     const legendItems = computed(() => {
       const usage = store.colorUsage
@@ -22,43 +20,42 @@ export default defineComponent({
     return () => (
       <div class="panel">
         <div class="flex items-center justify-between">
-          <h3 class="panel-title">
-            <ListFilter size={16} />
+          <span class="text-xs font-medium">
             用量统计
-            <span class="font-normal text-text-secondary ml-1.5 text-xs">
+            <span class="text-text-secondary font-normal ml-1.5">
               {legendItems.value.length}色 · {totalBeads.value}颗
             </span>
-          </h3>
-          {filterCode.value && (
-            <button class="text-xs text-primary hover:underline" onClick={() => filterCode.value = null}>
+          </span>
+          {store.highlightCode && (
+            <button class="text-xs text-primary hover:underline" onClick={() => store.highlightCode = null}>
               清除筛选
             </button>
           )}
         </div>
 
-        {filterCode.value && (
-          <div class="flex items-center gap-2 text-xs p-2 rounded-lg bg-primary/10 text-primary">
-            <div class="w-4 h-4 rounded-sm border border-primary/30"
-              style={{ backgroundColor: store.selectedPalette.find((c) => c.code === filterCode.value)?.hex }} />
-            仅显示: {legendItems.value.find((c) => c.code === filterCode.value)?.code} {legendItems.value.find((c) => c.code === filterCode.value)?.name}
+        {store.highlightCode && (
+          <div class="flex items-center gap-2 text-xs p-2 rounded-2xl bg-primary/10 text-primary">
+            <div class="w-3 h-3 rounded-full border border-primary/30"
+              style={{ backgroundColor: store.selectedPalette.find((c) => c.code === store.highlightCode)?.hex }} />
+            仅显示: {legendItems.value.find((c) => c.code === store.highlightCode)?.code} {legendItems.value.find((c) => c.code === store.highlightCode)?.name}
           </div>
         )}
 
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-1">
+        <div class="grid gap-1" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))' }}>
           {legendItems.value.map((col: BeadColor) => {
             const count = store.colorUsage[col.code] ?? 0
-            const active = filterCode.value === col.code
+            const active = store.highlightCode === col.code
             return (
               <button
                 key={col.code}
-                class={`flex items-center gap-1.5 text-xs py-1 px-1.5 rounded-md transition-all duration-100 ${
+                class={`flex items-center gap-1.5 text-xs py-1 px-2 rounded-2xl transition-all border border-border/30 ${
                   active ? 'ring-2 ring-primary bg-primary/10' : 'hover:bg-background'
                 }`}
-                onClick={() => { filterCode.value = active ? null : col.code }}
+                onClick={() => { store.highlightCode = active ? null : col.code }}
               >
-                <div class="w-3.5 h-3.5 rounded-sm border border-black/10 flex-shrink-0"
+                <div class="w-3 h-3 rounded-full border border-black/10 flex-shrink-0"
                   style={{ backgroundColor: col.hex }} />
-                <span class="truncate flex-1 text-left">{col.code}</span>
+                <span class="truncate flex-1 text-left">{col.code} {col.name}</span>
                 <span class="text-text-secondary font-mono flex-shrink-0 tabular-nums">{count}</span>
               </button>
             )
