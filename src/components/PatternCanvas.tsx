@@ -677,7 +677,9 @@ export default defineComponent({
 
           ctx.fillStyle = '#999'
           ctx.font = `${nameFontSize}px sans-serif`
-          ctx.fillText(`${usage}`, x + swatchH + 6, y + 33)
+          ctx.textAlign = 'right'
+          ctx.fillText(`${usage}颗`, x + swatchW - 4, y + 33)
+          ctx.textAlign = 'left'
         }
 
         curY += legendRows * (swatchH + swatchGap) - swatchGap

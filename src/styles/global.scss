@@ -662,3 +662,40 @@ input[type="range"] {
     }
   }
 }
+
+.legend-swatch {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--swatch-bg);
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    transform: scale(1.15);
+    z-index: 2;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  &:active { transform: scale(0.95); }
+
+  .legend-swatch-code {
+    font-size: 7px;
+    font-weight: 700;
+    font-family: monospace;
+    line-height: 1;
+    text-align: center;
+    pointer-events: none;
+  }
+}
+
+.legend-swatch-active {
+  outline: 2px solid rgb(var(--color-primary));
+  outline-offset: 1px;
+  box-shadow: 0 0 0 3px rgb(var(--color-primary) / 20%);
+}
