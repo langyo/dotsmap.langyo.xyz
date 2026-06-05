@@ -139,7 +139,7 @@ export default defineComponent({
                 {hasPattern && <BeadLegend />}
               </aside>
 
-              <div class="flex-1 min-w-0 min-h-0">
+              <div class="flex-1 min-w-0" style={{ height: '100%' }}>
                 <PatternCanvas fullHeight />
               </div>
             </div>
