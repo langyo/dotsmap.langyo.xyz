@@ -526,42 +526,52 @@ export default defineComponent({
       ctx.fillStyle = '#d63384'
       ctx.fillRect(fx, fy, fw, 3)
 
-      const titleSize = Math.round(fh * 0.13)
+      const titleSize = Math.round(fh * 0.18)
       const subSize = Math.round(fh * 0.09)
+      const qrSize = Math.round(fh * 0.55)
+      const qrX = fx + fw - qrSize - 18
+      const qrTopY = fy + Math.round((fh - qrSize) * 0.3)
 
-      ctx.fillStyle = '#222'
-      ctx.font = `bold ${titleSize}px sans-serif`
-      ctx.textBaseline = 'middle'
+      ctx.textBaseline = 'top'
       ctx.textAlign = 'left'
-      ctx.fillText('该图纸由 DotsMap 创作', fx + 18, fy + fh * 0.4)
+      const titleY = qrTopY
+
+      ctx.font = `bold ${titleSize}px sans-serif`
+      ctx.fillStyle = '#333'
+      const part1 = '该图纸由 '
+      const part2 = 'DotsMap'
+      const part3 = ' 创作'
+      const w1 = ctx.measureText(part1).width
+      ctx.fillText(part1, fx + 18, titleY)
+      ctx.fillStyle = '#d63384'
+      const w2 = ctx.measureText(part2).width
+      ctx.fillText(part2, fx + 18 + w1, titleY)
+      ctx.fillStyle = '#333'
+      ctx.fillText(part3, fx + 18 + w1 + w2, titleY)
 
       ctx.fillStyle = '#888'
       ctx.font = `${subSize}px sans-serif`
       ctx.fillText(
         `${store.currentBrand.name} · ${store.selectedPaletteLabel} · ${p.gridWidth}×${p.gridHeight} · 使用 ${sorted.length} 种颜色`,
         fx + 18,
-        fy + fh * 0.6,
+        titleY + titleSize + Math.round(fh * 0.04),
       )
+      ctx.textBaseline = 'middle'
 
       const titleW = Math.max(
         ctx.measureText('该图纸由 DotsMap 创作').width,
         ctx.measureText(`${store.currentBrand.name} · ${store.selectedPaletteLabel} · ${p.gridWidth}×${p.gridHeight} · 使用 ${sorted.length} 种颜色`).width,
       )
 
-      const qrSize = Math.round(fh * 0.55)
-      const qrX = fx + fw - qrSize - 18
-      const qrRightEdge = qrX - 24
-
       try {
         const qrCanvas = await generateQRCanvas(qrSize)
-        const qrY = fy + Math.round((fh - qrSize) * 0.3)
-        ctx.drawImage(qrCanvas, qrX, qrY)
+        ctx.drawImage(qrCanvas, qrX, qrTopY)
 
         ctx.fillStyle = '#999'
         const urlSize = Math.round(fh * 0.065)
         ctx.font = `${urlSize}px sans-serif`
         ctx.textAlign = 'center'
-        ctx.fillText('dotsmap.langyo.xyz', qrX + qrSize / 2, qrY + qrSize + urlSize + 6)
+        ctx.fillText('dotsmap.langyo.xyz', qrX + qrSize / 2, qrTopY + qrSize + urlSize + 6)
       } catch {
         ctx.fillStyle = '#999'
         ctx.font = `${subSize}px sans-serif`
@@ -573,7 +583,7 @@ export default defineComponent({
 
       if (sorted.length > 0) {
         const dotAreaLeft = fx + 18 + titleW + 24
-        const dotAreaW = qrRightEdge - dotAreaLeft
+        const dotAreaW = (qrX - 24) - dotAreaLeft
         if (dotAreaW > 20) {
           const dotSize = Math.round(fh * 0.2)
           const gap = Math.round(dotSize * 0.15)
