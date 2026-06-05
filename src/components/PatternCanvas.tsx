@@ -581,6 +581,97 @@ export default defineComponent({
       setTimeout(() => URL.revokeObjectURL(url), 500)
     }
 
+    function getUsedColors(p: BeadPattern) {
+      const usage: Record<string, number> = {}
+      for (const c of p.cells) usage[c.colorCode] = (usage[c.colorCode] ?? 0) + 1
+      const usedCodes = new Set(Object.keys(usage))
+      const usedColors = store.selectedPalette.filter(c => usedCodes.has(c.code))
+      const sorted = [...usedColors].sort((a, b) => (usage[b.code] ?? 0) - (usage[a.code] ?? 0))
+      return { usage, usedCodes, sorted }
+    }
+
+    function drawColorLegend(
+      ctx: CanvasRenderingContext2D,
+      startX: number, startY: number, areaW: number,
+      p: BeadPattern, sorted: ReturnType<typeof getUsedColors>['sorted'],
+      usage: Record<string, number>,
+      scale: number,
+    ): number {
+      if (sorted.length === 0) return 0
+
+      const swatchW = Math.round(120 * scale / 3)
+      const swatchH = Math.round(44 * scale / 3)
+      const swatchGap = Math.round(6 * scale / 3)
+      const colorBlockW = swatchH
+      const codeFontSize = Math.round(13 * scale / 3)
+      const nameFontSize = Math.round(11 * scale / 3)
+      const titleSize = Math.round(20 * scale / 3)
+
+      ctx.fillStyle = '#333'
+      ctx.font = `bold ${titleSize}px sans-serif`
+      ctx.textAlign = 'left'
+      ctx.textBaseline = 'top'
+      ctx.fillText('使用颜色', startX, startY)
+
+      const titleH = titleSize + Math.round(8 * scale / 3)
+      const colsPerRow = Math.max(1, Math.floor(areaW / (swatchW + swatchGap)))
+      const legendRows = Math.ceil(sorted.length / colsPerRow)
+
+      for (let i = 0; i < sorted.length; i++) {
+        const col = i % colsPerRow
+        const row = Math.floor(i / colsPerRow)
+        const x = startX + col * (swatchW + swatchGap)
+        const y = startY + titleH + row * (swatchH + swatchGap)
+        const count = usage[sorted[i].code] ?? 0
+
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(x, y, swatchW, swatchH)
+        ctx.strokeStyle = 'rgba(0,0,0,0.1)'
+        ctx.lineWidth = 1
+        ctx.strokeRect(x, y, swatchW, swatchH)
+
+        ctx.fillStyle = sorted[i].hex
+        ctx.fillRect(x + 1, y + 1, colorBlockW - 2, swatchH - 2)
+
+        ctx.fillStyle = '#222'
+        ctx.font = `bold ${codeFontSize}px monospace`
+        ctx.textBaseline = 'top'
+        ctx.textAlign = 'left'
+        ctx.fillText(sorted[i].code, x + colorBlockW + Math.round(6 * scale / 3), y + Math.round(3 * scale / 3))
+
+        ctx.fillStyle = '#666'
+        ctx.font = `${nameFontSize}px sans-serif`
+        ctx.fillText(sorted[i].name, x + colorBlockW + Math.round(6 * scale / 3), y + Math.round(18 * scale / 3))
+
+        ctx.fillStyle = '#999'
+        ctx.font = `${nameFontSize}px sans-serif`
+        ctx.textAlign = 'right'
+        ctx.fillText(`${count}颗`, x + swatchW - Math.round(4 * scale / 3), y + Math.round(30 * scale / 3))
+        ctx.textAlign = 'left'
+      }
+
+      return titleH + legendRows * (swatchH + swatchGap)
+    }
+
+    function drawInfoBar(
+      ctx: CanvasRenderingContext2D,
+      y: number, w: number, h: number, pad: number,
+      usedCodes: Set<string>, p: BeadPattern,
+    ) {
+      ctx.fillStyle = '#f5f5f0'
+      ctx.fillRect(0, y, w, h)
+      const infoFontSize = Math.round(h * 0.4)
+      ctx.fillStyle = '#555'
+      ctx.font = `${infoFontSize}px sans-serif`
+      ctx.textBaseline = 'middle'
+      ctx.textAlign = 'left'
+      ctx.fillText(
+        `色盘：${store.currentBrand.name} · ${store.selectedPaletteLabel} (${store.selectedPalette.length}色)   |   尺寸：${p.gridWidth}×${p.gridHeight}   |   使用 ${usedCodes.size} 种颜色`,
+        pad,
+        y + h / 2,
+      )
+    }
+
     async function downloadHighRes() {
       showExportModal.value = false
       const d = imgData.value
@@ -589,27 +680,72 @@ export default defineComponent({
 
       const cellSize = 128
       const pad = 48
+      const footerH = 64
+      const infoH = 36
 
       const patternW = p.gridWidth * cellSize
       const patternH = p.gridHeight * cellSize
+      const { usage, usedCodes, sorted } = getUsedColors(p)
 
-      const usedCodes = new Set(p.cells.map(c => c.colorCode))
-      const usedColors = store.selectedPalette.filter(c => usedCodes.has(c.code))
-      const sorted = [...usedColors].sort((a, b) => {
-        const fa = p.cells.filter(cc => cc.colorCode === a.code).length
-        const fb = p.cells.filter(cc => cc.colorCode === b.code).length
-        return fb - fa
-      })
+      const tempCanvas = document.createElement('canvas')
+      tempCanvas.width = 1000
+      const tempCtx = tempCanvas.getContext('2d')!
+      const legendH = drawColorLegend(tempCtx, 0, 0, patternW, p, sorted, usage, 3) + 8
 
-      const swatchW = 120
-      const swatchH = 44
-      const swatchGap = 6
-      const colsPerRow = Math.max(1, Math.floor(patternW / (swatchW + swatchGap)))
-      const legendRows = Math.ceil(sorted.length / colsPerRow)
-      const legendH = sorted.length > 0 ? legendRows * (swatchH + swatchGap) + 24 : 0
+      const totalW = pad + patternW + pad
+      const totalH = pad + patternH + pad + legendH + infoH + footerH
 
-      const infoH = 36
-      const footerH = 64
+      const canvas = document.createElement('canvas')
+      canvas.width = totalW
+      canvas.height = totalH
+      const ctx = canvas.getContext('2d')!
+
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, totalW, totalH)
+
+      ctx.save()
+      ctx.translate(pad, pad)
+      ctx.imageSmoothingEnabled = false
+      const src = document.createElement('canvas')
+      src.width = d.width
+      src.height = d.height
+      src.getContext('2d')!.putImageData(d, 0, 0)
+      ctx.drawImage(src, 0, 0, patternW, patternH)
+      drawExportGrid(ctx, patternW, patternH, p.gridWidth, p.gridHeight)
+      drawExportCodes(ctx, p.gridWidth, p.gridHeight, cellSize, p.cells)
+      ctx.restore()
+
+      let curY = pad + patternH + pad
+      curY += drawColorLegend(ctx, pad, curY, patternW, p, sorted, usage, 3)
+
+      drawInfoBar(ctx, curY, totalW, infoH, pad, usedCodes, p)
+      curY += infoH
+
+      await drawFooter(ctx, 0, curY, totalW, footerH, p)
+
+      const blob = await canvasToBlob(canvas)
+      downloadBlob(blob, 'dotsmap-hd.png')
+    }
+
+    async function downloadShareImage() {
+      showExportModal.value = false
+      const d = imgData.value
+      const p = store.beadPattern
+      if (!d || !p) return
+
+      const scale = Math.max(3, Math.ceil(1200 / d.width))
+      const patternW = d.width * scale
+      const patternH = d.height * scale
+      const pad = 32
+      const footerH = 100
+      const infoH = 32
+
+      const { usage, usedCodes, sorted } = getUsedColors(p)
+
+      const tempCanvas = document.createElement('canvas')
+      tempCanvas.width = 1000
+      const tempCtx = tempCanvas.getContext('2d')!
+      const legendH = drawColorLegend(tempCtx, 0, 0, patternW, p, sorted, usage, scale) + 8
 
       const totalW = pad + patternW + pad
       const totalH = pad + patternH + pad + legendH + infoH + footerH
@@ -631,113 +767,6 @@ export default defineComponent({
       src.getContext('2d')!.putImageData(d, 0, 0)
       ctx.drawImage(src, 0, 0, patternW, patternH)
 
-      drawExportGrid(ctx, patternW, patternH, p.gridWidth, p.gridHeight)
-      drawExportCodes(ctx, p.gridWidth, p.gridHeight, cellSize, p.cells)
-      ctx.restore()
-
-      let curY = pad + patternH + pad
-
-      if (sorted.length > 0) {
-        const legendTitleSize = 20
-        ctx.fillStyle = '#333'
-        ctx.font = `bold ${legendTitleSize}px sans-serif`
-        ctx.textAlign = 'left'
-        ctx.textBaseline = 'top'
-        ctx.fillText('使用颜色', pad, curY)
-        curY += legendTitleSize + 8
-
-        const codeFontSize = 13
-        const nameFontSize = 11
-        for (let i = 0; i < sorted.length; i++) {
-          const col = i % colsPerRow
-          const row = Math.floor(i / colsPerRow)
-          const x = pad + col * (swatchW + swatchGap)
-          const y = curY + row * (swatchH + swatchGap)
-
-          const usage = p.cells.filter(cc => cc.colorCode === sorted[i].code).length
-
-          ctx.fillStyle = '#ffffff'
-          ctx.fillRect(x, y, swatchW, swatchH)
-          ctx.strokeStyle = 'rgba(0,0,0,0.1)'
-          ctx.lineWidth = 1
-          ctx.strokeRect(x, y, swatchW, swatchH)
-
-          ctx.fillStyle = sorted[i].hex
-          ctx.fillRect(x + 1, y + 1, swatchH - 2, swatchH - 2)
-
-          ctx.fillStyle = '#222'
-          ctx.font = `bold ${codeFontSize}px monospace`
-          ctx.textBaseline = 'top'
-          ctx.textAlign = 'left'
-          ctx.fillText(sorted[i].code, x + swatchH + 6, y + 4)
-
-          ctx.fillStyle = '#666'
-          ctx.font = `${nameFontSize}px sans-serif`
-          ctx.fillText(sorted[i].name, x + swatchH + 6, y + 20)
-
-          ctx.fillStyle = '#999'
-          ctx.font = `${nameFontSize}px sans-serif`
-          ctx.textAlign = 'right'
-          ctx.fillText(`${usage}颗`, x + swatchW - 4, y + 33)
-          ctx.textAlign = 'left'
-        }
-
-        curY += legendRows * (swatchH + swatchGap) - swatchGap
-      }
-
-      const infoY = curY
-      ctx.fillStyle = '#f5f5f0'
-      ctx.fillRect(0, infoY, totalW, infoH)
-
-      const infoFontSize = 14
-      ctx.fillStyle = '#555'
-      ctx.font = `${infoFontSize}px sans-serif`
-      ctx.textBaseline = 'middle'
-      ctx.textAlign = 'left'
-      ctx.fillText(
-        `色盘：${store.currentBrand.name} · ${store.selectedPaletteLabel} (${store.selectedPalette.length}色)   |   尺寸：${p.gridWidth}×${p.gridHeight}   |   使用 ${usedCodes.size} 种颜色`,
-        pad,
-        infoY + infoH / 2,
-      )
-
-      await drawFooter(ctx, 0, infoY + infoH, totalW, footerH, p)
-
-      const blob = await canvasToBlob(canvas)
-      downloadBlob(blob, 'dotsmap-hd.png')
-    }
-
-    async function downloadShareImage() {
-      showExportModal.value = false
-      const d = imgData.value
-      const p = store.beadPattern
-      if (!d || !p) return
-
-      const scale = Math.max(3, Math.ceil(1200 / d.width))
-      const patternW = d.width * scale
-      const patternH = d.height * scale
-      const pad = 32
-      const footerH = 100
-
-      const totalW = pad + patternW + pad
-      const totalH = pad + patternH + pad + footerH
-
-      const canvas = document.createElement('canvas')
-      canvas.width = totalW
-      canvas.height = totalH
-      const ctx = canvas.getContext('2d')!
-
-      ctx.fillStyle = '#ffffff'
-      ctx.fillRect(0, 0, totalW, totalH)
-
-      ctx.save()
-      ctx.translate(pad, pad)
-      ctx.imageSmoothingEnabled = false
-      const src = document.createElement('canvas')
-      src.width = d.width
-      src.height = d.height
-      src.getContext('2d')!.putImageData(d, 0, 0)
-      ctx.drawImage(src, 0, 0, patternW, patternH)
-
       const cW = patternW / p.gridWidth, cH = patternH / p.gridHeight
       ctx.strokeStyle = 'rgba(128,128,128,0.15)'
       ctx.lineWidth = 0.5
@@ -753,7 +782,13 @@ export default defineComponent({
       ctx.stroke()
       ctx.restore()
 
-      await drawFooter(ctx, 0, pad + patternH + pad, totalW, footerH, p)
+      let curY = pad + patternH + pad
+      curY += drawColorLegend(ctx, pad, curY, patternW, p, sorted, usage, scale)
+
+      drawInfoBar(ctx, curY, totalW, infoH, pad, usedCodes, p)
+      curY += infoH
+
+      await drawFooter(ctx, 0, curY, totalW, footerH, p)
 
       const blob = await canvasToBlob(canvas)
       downloadBlob(blob, 'dotsmap-share.png')
@@ -775,9 +810,17 @@ export default defineComponent({
       const patternH = d.height * scale
       const pad = 32
       const footerH = 100
+      const infoH = 32
+
+      const { usage, usedCodes, sorted } = getUsedColors(p)
+
+      const tempCanvas = document.createElement('canvas')
+      tempCanvas.width = 1000
+      const tempCtx = tempCanvas.getContext('2d')!
+      const legendH = drawColorLegend(tempCtx, 0, 0, patternW, p, sorted, usage, scale) + 8
 
       const totalW = pad + patternW + pad
-      const totalH = pad + patternH + pad + footerH
+      const totalH = pad + patternH + pad + legendH + infoH + footerH
 
       const canvas = document.createElement('canvas')
       canvas.width = totalW
@@ -811,7 +854,13 @@ export default defineComponent({
       ctx.stroke()
       ctx.restore()
 
-      await drawFooter(ctx, 0, pad + patternH + pad, totalW, footerH, p)
+      let curY = pad + patternH + pad
+      curY += drawColorLegend(ctx, pad, curY, patternW, p, sorted, usage, scale)
+
+      drawInfoBar(ctx, curY, totalW, infoH, pad, usedCodes, p)
+      curY += infoH
+
+      await drawFooter(ctx, 0, curY, totalW, footerH, p)
 
       const blob = await canvasToBlob(canvas)
       const file = new File([blob], 'dotsmap-share.png', { type: 'image/png' })
