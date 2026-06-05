@@ -135,7 +135,6 @@ input[type="range"] {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  overflow: hidden;
 
   @media (max-width: 639px) {
     padding: 0.75rem;
