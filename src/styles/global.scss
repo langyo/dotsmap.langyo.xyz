@@ -1,0 +1,104 @@
+:root {
+  --color-primary: 99 102 241;
+  --color-secondary: 139 92 246;
+  --color-accent: 14 165 233;
+  --color-text: 30 30 30;
+  --color-muted: 115 115 130;
+  --color-border: 180 180 190;
+  --color-background: 248 248 252;
+  --color-surface: 255 255 255;
+  --color-success: 34 197 94;
+  --color-error: 239 68 68;
+  --color-warning: 245 158 11;
+  --color-info: 6 182 212;
+}
+
+[data-mode="dark"] {
+  --color-primary: 129 140 248;
+  --color-secondary: 167 139 250;
+  --color-accent: 56 189 248;
+  --color-text: 230 230 235;
+  --color-muted: 140 140 155;
+  --color-border: 80 80 95;
+  --color-background: 18 18 24;
+  --color-surface: 28 28 35;
+  --color-success: 74 222 128;
+  --color-error: 252 129 129;
+  --color-warning: 251 191 36;
+  --color-info: 34 211 238;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  background-color: rgb(var(--color-background));
+  color: rgb(var(--color-text));
+}
+
+#app {
+  min-height: 100vh;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: rgb(var(--color-border) / 40%);
+  outline: none;
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgb(var(--color-primary));
+    cursor: pointer;
+  }
+
+  &::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgb(var(--color-primary));
+    cursor: pointer;
+    border: none;
+  }
+}
+
+.bg-checkerboard {
+  background-image:
+    linear-gradient(45deg, #e5e5e5 25%, transparent 25%),
+    linear-gradient(-45deg, #e5e5e5 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #e5e5e5 75%),
+    linear-gradient(-45deg, transparent 75%, #e5e5e5 75%);
+  background-size: 16px 16px;
+  background-position:
+    0 0,
+    0 8px,
+    8px -8px,
+    -8px 0;
+}
