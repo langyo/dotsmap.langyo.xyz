@@ -573,6 +573,18 @@ input[type="range"] {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: opacity 0.3s ease, visibility 0.3s;
+
+  &.export-visible {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  &.export-hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
 }
 
 .export-backdrop {
@@ -615,7 +627,7 @@ input[type="range"] {
   border-radius: 1rem;
   border: 1px solid rgb(var(--color-border) / 15%);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s;
 
   &:hover {
     border-color: rgb(var(--color-primary) / 30%);

@@ -161,7 +161,7 @@ export default defineComponent({
 
       if (!hasSource) {
         return (
-          <div class="min-h-screen bg-background text-text font-sans transition-colors duration-200 flex flex-col">
+          <div class="min-h-screen bg-background text-text font-sans transition-colors duration-300 flex flex-col">
             {header}
             <main class="p-3 flex-1">
               <div class="flex flex-col gap-3 lg:grid lg:grid-cols-[320px_1fr]">
@@ -180,7 +180,7 @@ export default defineComponent({
       }
 
       return (
-        <div class="h-[100dvh] bg-background text-text font-sans transition-colors duration-200 flex flex-col">
+        <div class="h-[100dvh] bg-background text-text font-sans transition-colors duration-300 flex flex-col">
           {header}
 
           {/* body: aside | canvas */}

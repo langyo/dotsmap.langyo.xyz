@@ -1038,10 +1038,9 @@ export default defineComponent({
         <input ref={fileInput} type="file" accept="image/*" class="hidden" onChange={onFileChange} />
       </div>
 
-      {showExportModal.value && (
-        <div class="export-overlay">
-          <div class="export-backdrop" onClick={() => showExportModal.value = false} />
-          <div class="export-dialog animate-fade-in">
+      <div class={`export-overlay ${showExportModal.value ? 'export-visible' : 'export-hidden'}`}>
+        <div class="export-backdrop" onClick={() => showExportModal.value = false} />
+        <div class="export-dialog">
             <div class="export-dialog-header">
               <span class="text-sm font-semibold">导出图纸</span>
               <button class="btn-icon" onClick={() => showExportModal.value = false}><X size={14} /></button>
@@ -1071,7 +1070,6 @@ export default defineComponent({
             </div>
           </div>
         </div>
-      )}
       </>
       )
     }
