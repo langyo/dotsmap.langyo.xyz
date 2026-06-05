@@ -39,7 +39,7 @@ export default defineComponent({
       const hasPattern = !!store.beadPattern
 
       const footer = (
-        <footer class="border-t border-border bg-background/80 backdrop-blur-md px-4 py-3">
+        <footer class="border-t border-border bg-background/80 backdrop-blur-md px-4 py-3 flex-shrink-0">
           <div class="flex flex-col sm:flex-row items-center justify-between gap-1 text-xs text-text-secondary px-2">
             <span>© {new Date().getFullYear()} DotsMap</span>
             <span>备案信息占位</span>
@@ -129,12 +129,15 @@ export default defineComponent({
         <div class="h-[100dvh] bg-background text-text font-sans transition-colors duration-200 flex flex-col">
           {header}
 
-          <div class="flex-1 min-h-0 flex">
-            <aside class="hidden lg:flex flex-col w-80 flex-shrink-0 border-r border-border overflow-y-auto">
+          {/* body: aside | canvas */}
+          <div class="flex-1 min-h-0 flex p-3 gap-3">
+            {/* desktop sidebar */}
+            <aside class="hidden lg:flex flex-col w-80 flex-shrink-0 min-h-0 overflow-y-auto pr-3 border-r border-border">
               <PaletteSelector />
               {hasPattern && <BeadLegend />}
             </aside>
 
+            {/* canvas */}
             <div class="flex-1 min-h-0">
               <PatternCanvas fullHeight />
             </div>
@@ -143,15 +146,23 @@ export default defineComponent({
           {footer}
 
           {/* mobile drawer */}
-          <aside class={`drawer-panel dp-l ${leftOpen.value ? 'open' : ''}`}>
-            <div class="drawer-head">
+          {leftOpen.value && (
+            <div class="fixed inset-0 z-[29] bg-black/25 lg:hidden" onClick={() => leftOpen.value = false} />
+          )}
+          <aside
+            class="fixed inset-y-0 left-0 z-30 w-[85vw] bg-background p-4 flex flex-col gap-3 overflow-y-auto border-r border-border lg:hidden"
+            style={{
+              transform: leftOpen.value ? 'translateX(0)' : 'translateX(-100%)',
+              transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+          >
+            <div class="flex items-center justify-between pb-2 border-b border-border/10">
               <span class="text-sm font-semibold">配置面板</span>
               <button class="btn-icon" onClick={() => leftOpen.value = false}><X size={14} /></button>
             </div>
             <PaletteSelector />
             {hasPattern && <BeadLegend />}
           </aside>
-          {leftOpen.value && <div class="drawer-backdrop lg:!hidden" onClick={() => leftOpen.value = false} />}
 
           {aboutOverlay}
         </div>
