@@ -78,10 +78,12 @@ export default defineComponent({
         </footer>
       )
 
-      const aboutDialog = aboutOpen.value && (
-        <>
+      const aboutVisible = aboutOpen.value
+
+      const aboutOverlay = (
+        <div class={`about-overlay ${aboutVisible ? 'about-visible' : 'about-hidden'}`}>
           <div class="about-backdrop" onClick={() => aboutOpen.value = false} />
-          <div class="about-dialog animate-fade-in">
+          <div class="about-dialog">
             <div class="about-dialog-header">
               <span class="text-sm font-semibold">关于 DotsMap</span>
               <button class="btn-icon" onClick={() => aboutOpen.value = false}><X size={14} /></button>
@@ -117,7 +119,7 @@ export default defineComponent({
               <p class="text-xs text-text-secondary mt-2">本工具完全开源，欢迎 Star & PR。</p>
             </div>
           </div>
-        </>
+        </div>
       )
 
       const header = (
@@ -155,7 +157,7 @@ export default defineComponent({
               </div>
             </main>
             {footer}
-            {aboutDialog}
+            {aboutOverlay}
           </div>
         )
       }
@@ -203,7 +205,7 @@ export default defineComponent({
 
           {anyOpen && <div class="drawer-backdrop" onClick={closeAll} />}
           {footer}
-          {aboutDialog}
+          {aboutOverlay}
         </div>
       )
     }

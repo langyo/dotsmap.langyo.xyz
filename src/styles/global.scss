@@ -52,7 +52,7 @@ body {
   line-height: 1.5;
   background-color: rgb(var(--color-background));
   color: rgb(var(--color-text));
-  transition: background-color 0.2s, color 0.2s;
+  transition: background-color 0.3s, color 0.3s;
 }
 
 #app { min-height: 100vh; }
@@ -83,7 +83,7 @@ input[type="range"] {
     -webkit-appearance: none; appearance: none;
     width: 14px; height: 14px; border-radius: 50%;
     background: rgb(var(--color-primary)); cursor: pointer;
-    transition: transform 0.15s;
+    transition: transform 0.3s;
     &:hover { transform: scale(1.2); }
   }
 
@@ -141,7 +141,7 @@ input[type="range"] {
   border: 1px solid rgb(var(--color-border) / 15%);
   background: rgb(var(--color-surface));
   color: rgb(var(--color-text));
-  transition: background-color 0.1s, transform 0.1s;
+  transition: background-color 0.3s, transform 0.3s;
   white-space: nowrap;
 
   &:hover { background: rgb(var(--color-primary) / 10%); }
@@ -187,7 +187,7 @@ input[type="range"] {
   border: none;
   background: transparent;
   color: rgb(var(--color-text));
-  transition: background-color 0.1s, color 0.1s, transform 0.1s;
+  transition: background-color 0.3s, color 0.3s, transform 0.3s;
 
   &:hover { background: rgb(var(--color-primary) / 10%); color: rgb(var(--color-primary)); }
   &:active { transform: scale(0.92); }
@@ -207,7 +207,7 @@ input[type="range"] {
   font-size: 0.875rem;
   font-family: inherit;
   color: rgb(var(--color-text));
-  transition: border-color 0.15s;
+  transition: border-color 0.3s;
 
   &:focus { border-color: rgb(var(--color-primary)); outline: none; }
 }
@@ -221,7 +221,7 @@ input[type="range"] {
   cursor: pointer;
   border-radius: 1rem;
   border: 2px dashed rgb(var(--color-border) / 30%);
-  transition: all 0.2s;
+  transition: all 0.3s;
 
   &:hover, &.dragging {
     border-color: rgb(var(--color-primary) / 50%);
@@ -289,7 +289,7 @@ input[type="range"] {
   position: absolute;
   border-radius: 5px;
   background: rgba(var(--color-text) / 25%);
-  transition: background 0.15s;
+  transition: background 0.3s;
 
   &:hover, &:active {
     background: rgba(var(--color-text) / 40%);
@@ -332,7 +332,7 @@ input[type="range"] {
   background: rgb(var(--color-border) / 30%);
   border: none;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.3s;
   flex-shrink: 0;
 
   &::after {
@@ -345,7 +345,7 @@ input[type="range"] {
     border-radius: 50%;
     background: #fff;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-    transition: transform 0.2s;
+    transition: transform 0.3s;
   }
 
   &.active {
@@ -433,7 +433,7 @@ input[type="range"] {
   border: 1px solid rgb(var(--color-border) / 15%);
   color: rgb(var(--color-text) / 50%);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s;
 
   @media (min-width: 1024px) {
     display: none;
@@ -474,23 +474,40 @@ input[type="range"] {
   to { opacity: 1; transform: translateY(0); }
 }
 
-.animate-fade-in { animation: fade-in 0.15s ease-out; }
+.animate-fade-in { animation: fade-in 0.3s ease-out; }
 .animate-spin { animation: spin 0.6s linear infinite; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.about-backdrop {
+.about-overlay {
   position: fixed;
   inset: 0;
   z-index: 49;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.3s ease, visibility 0.3s;
+
+  &.about-visible {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  &.about-hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+.about-backdrop {
+  position: absolute;
+  inset: 0;
   background: rgba(0, 0, 0, 0.3);
 }
 
 .about-dialog {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  position: relative;
   z-index: 50;
   width: min(400px, 90vw);
   background: rgb(var(--color-surface));
@@ -530,7 +547,7 @@ input[type="range"] {
   font-size: 0.75rem;
   color: rgb(var(--color-primary));
   text-decoration: none;
-  transition: opacity 0.15s;
+  transition: opacity 0.3s;
 
   &:hover { opacity: 0.8; text-decoration: underline; }
 }
