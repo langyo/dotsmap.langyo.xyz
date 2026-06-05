@@ -6,7 +6,7 @@ import PaletteSelector from './PaletteSelector'
 import PatternCanvas from './PatternCanvas'
 import BeadLegend from './BeadLegend'
 import ColorSwatchPanel from './ColorSwatchPanel'
-import { Sun, Moon, SlidersHorizontal, ListFilter, X, Info } from 'lucide-vue-next'
+import { Sun, Moon, SlidersHorizontal, ListFilter, X, Info, Github } from 'lucide-vue-next'
 
 export default defineComponent({
   name: 'DotsMapApp',
@@ -51,27 +51,45 @@ export default defineComponent({
       const hasPattern = !!store.beadPattern
       const anyOpen = leftOpen.value || rightOpen.value
 
-      const aboutModal = showAbout.value && (
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => showAbout.value = false}>
-          <div class="bg-surface rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="text-lg font-bold">关于 DotsMap</h2>
-              <button class="btn-icon" onClick={() => showAbout.value = false}><X size={16} /></button>
-            </div>
-            <p class="text-sm text-text-secondary leading-relaxed mb-3">
-              DotsMap 是一款拼豆图纸生成器，可以将任意图片转换为拼豆图纸，支持多种品牌拼豆色系、图片预处理（去背景/魔术棒选区）以及缩放平移预览。
-            </p>
-            <p class="text-xs text-text-tertiary">
-              上传图片即可自动生成图纸，左侧面板可调整品牌、色系和预处理参数。
-            </p>
+      const footer = (
+        <footer class="border-t border-border bg-background/80 backdrop-blur-md px-4 py-4 mt-auto">
+          <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-text-secondary">
+            <span>© {new Date().getFullYear()} DotsMap</span>
+            <span>备案信息占位</span>
           </div>
-        </div>
+        </footer>
       )
 
-      const footer = (
-        <footer class="border-t border-border px-4 py-4 text-center text-xs text-text-secondary">
-          <p>DotsMap · 拼豆图纸生成器</p>
-        </footer>
+      const aboutOverlay = (
+        <div class={`about-overlay ${showAbout.value ? 'about-visible' : 'about-hidden'}`}>
+          <div class="about-backdrop" onClick={() => showAbout.value = false} />
+          <div class="about-dialog">
+            <div class="about-dialog-header">
+              <span class="text-sm font-semibold">关于 DotsMap</span>
+              <button class="btn-icon" onClick={() => showAbout.value = false}><X size={14} /></button>
+            </div>
+            <div class="about-dialog-body">
+              <p><span class="text-primary font-semibold">DotsMap</span> 是一个为 <span class="font-semibold">绫波丽</span> 制作的小作品，用于辅助拼豆创作，将任意图片转化为拼豆图纸。</p>
+              <p>支持多品牌色号匹配，AI 色彩量化，离线使用。</p>
+              <div class="about-dialog-divider" />
+              <div class="flex items-center gap-3">
+                <span class="text-xs text-text-secondary">作者：</span>
+                <a href="https://github.com/langyo" target="_blank" rel="noopener noreferrer" class="about-link">
+                  <Github size={13} />
+                  langyo
+                </a>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="text-xs text-text-secondary">仓库：</span>
+                <a href="https://github.com/langyo/dotsmap.langyo.xyz" target="_blank" rel="noopener noreferrer" class="about-link">
+                  <Github size={13} />
+                  dotsmap.langyo.xyz
+                </a>
+              </div>
+              <p class="text-xs text-text-secondary mt-2">本工具完全开源，欢迎 Star & PR。</p>
+            </div>
+          </div>
+        </div>
       )
 
       const header = (
@@ -109,7 +127,7 @@ export default defineComponent({
               </div>
             </main>
             {footer}
-            {aboutModal}
+            {aboutOverlay}
           </div>
         )
       }
@@ -156,7 +174,7 @@ export default defineComponent({
 
           {anyOpen && <div class="drawer-backdrop" onClick={closeAll} />}
           {footer}
-          {aboutModal}
+          {aboutOverlay}
         </div>
       )
     }
