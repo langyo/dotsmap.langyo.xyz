@@ -11,3 +11,6 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+vite.config.d.ts
+vite.config.js
+pnpm-workspace.yaml
