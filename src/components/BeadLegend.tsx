@@ -51,7 +51,7 @@ export default defineComponent({
             return (
               <button
                 key={col.code}
-                class={`flex items-center gap-1.5 text-xs py-1 px-1.5 rounded-md transition-all duration-100 ${
+                class={`flex items-center gap-1.5 text-xs py-1.5 px-1.5 rounded-md transition-all duration-100 ${
                   active ? 'ring-2 ring-primary bg-primary/10' : 'hover:bg-background'
                 }`}
                 onClick={() => { filterCode.value = active ? null : col.code }}

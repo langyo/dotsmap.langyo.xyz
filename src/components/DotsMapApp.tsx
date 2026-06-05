@@ -17,7 +17,7 @@ export default defineComponent({
 
     return () => (
       <div class="min-h-screen bg-background text-text font-sans transition-colors duration-200">
-        <header class="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-md px-4 py-3">
+        <header class="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-md px-4 sm:py-3 py-2">
           <div class="max-w-7xl mx-auto flex items-center justify-between">
             <h1 class="text-lg font-bold tracking-tight select-none">
               <span class="text-primary">DotsMap</span>
@@ -31,9 +31,9 @@ export default defineComponent({
           </div>
         </header>
 
-        <main class="max-w-7xl mx-auto p-4">
-          <div class="grid lg:grid-cols-12 gap-4">
-            <div class="lg:col-span-4 xl:col-span-3 space-y-3">
+        <main class="max-w-7xl mx-auto sm:p-4 p-3">
+          <div class="grid lg:grid-cols-12 sm:gap-4 gap-3">
+            <div class="lg:col-span-4 xl:col-span-3 sm:space-y-3 space-y-2">
               <div class="panel">
                 <div class="panel-title text-sm">品牌</div>
                 <div class="flex gap-1">
@@ -55,7 +55,7 @@ export default defineComponent({
               {store.sourceDataURL && <PaletteSelector />}
             </div>
 
-            <div class="lg:col-span-8 xl:col-span-9 space-y-3">
+            <div class="lg:col-span-8 xl:col-span-9 sm:space-y-3 space-y-2">
               <PatternCanvas />
               {store.beadPattern && <BeadLegend />}
               <ColorSwatchPanel />

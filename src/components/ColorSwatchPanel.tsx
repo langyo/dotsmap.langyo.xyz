@@ -42,7 +42,7 @@ export default defineComponent({
                   class={`btn btn-sm ${selectedFamily.value === g.family ? 'btn-primary' : ''}`}
                   onClick={() => (selectedFamily.value = selectedFamily.value === g.family ? null : g.family)}
                 >
-                  {g.label} ({g.colors.length})
+                  {g.label}({g.colors.length})
                 </button>
               ))}
             </div>
@@ -53,11 +53,11 @@ export default defineComponent({
                 .map((g) => (
                   <div key={g.family}>
                     <div class="text-xs text-text-secondary mb-1 font-medium">{g.label}</div>
-                    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8 gap-1">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-8 gap-1">
                       {g.colors.map((col) => (
                         <div key={col.code} class="flex items-center gap-1 p-1 rounded-md hover:bg-background transition-colors">
                           <div
-                            class="w-5 h-5 rounded border border-black/10 flex-shrink-0"
+                            class="w-4 h-4 sm:w-5 sm:h-5 rounded border border-black/10 flex-shrink-0"
                             style={{ backgroundColor: col.hex }}
                           />
                           <div class="min-w-0">
