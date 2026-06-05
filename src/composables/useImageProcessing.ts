@@ -78,15 +78,17 @@ export function useImageProcessing() {
     clearPaletteCache()
 
     try {
+      const gw = store.gridWidth
+      const gh = store.gridHeight
       const resized = resizeImage(source, 512)
-      const cells = downsampleToGrid(resized, store.gridWidth, store.gridHeight)
+      const cells = downsampleToGrid(resized, gw, gh)
 
       const patternCells: Array<{ x: number; y: number; colorCode: string; colorName: string; hex: string }> = []
       const usage: Record<string, number> = {}
-      const beadedData = new Uint8ClampedArray(resized.width * resized.height * 4)
 
-      const cellW = Math.ceil(resized.width / store.gridWidth)
-      const cellH = Math.ceil(resized.height / store.gridHeight)
+      const cellW = resized.width / gw
+      const cellH = resized.height / gh
+      const beadedData = new Uint8ClampedArray(gw * gh * 4)
 
       for (const cell of cells) {
         if (cell.a < 128) continue
@@ -103,24 +105,20 @@ export function useImageProcessing() {
 
         usage[nearest.code] = (usage[nearest.code] ?? 0) + 1
 
-        for (let py = cell.y * cellH; py < Math.min((cell.y + 1) * cellH, resized.height); py++) {
-          for (let px = cell.x * cellW; px < Math.min((cell.x + 1) * cellW, resized.width); px++) {
-            const idx = (py * resized.width + px) * 4
-            beadedData[idx] = nearest.r
-            beadedData[idx + 1] = nearest.g
-            beadedData[idx + 2] = nearest.b
-            beadedData[idx + 3] = 255
-          }
-        }
+        const idx = (cell.y * gw + cell.x) * 4
+        beadedData[idx] = nearest.r
+        beadedData[idx + 1] = nearest.g
+        beadedData[idx + 2] = nearest.b
+        beadedData[idx + 3] = 255
       }
 
-      const beadedImageData = new ImageData(beadedData, resized.width, resized.height)
+      const beadedImageData = new ImageData(beadedData, gw, gh)
       store.setBeadedImage(beadedImageData, dataURLFromImageData(beadedImageData))
 
       const pattern: BeadPattern = {
         cells: patternCells,
-        gridWidth: store.gridWidth,
-        gridHeight: store.gridHeight,
+        gridWidth: gw,
+        gridHeight: gh,
         beadSize: store.beadSize,
         paletteLabel: store.selectedPaletteLabel,
         paletteCount: store.selectedPaletteCount,

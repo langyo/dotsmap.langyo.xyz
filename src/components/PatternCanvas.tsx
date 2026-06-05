@@ -142,26 +142,29 @@ export default defineComponent({
       if (!d && !url) return
 
       if (d) {
+        const p = store.beadPattern
         let drawData = d
-        if (store.highlightCode && store.beadPattern) {
-          drawData = applyHighlight(d, store.beadPattern)
+        if (store.highlightCode && p) {
+          drawData = applyHighlight(d, p)
         }
 
-        const w = Math.round(drawData.width * zoom.value)
-        const h = Math.round(drawData.height * zoom.value)
+        const gw = drawData.width
+        const gh = drawData.height
+        const w = gw * zoom.value
+        const h = gh * zoom.value
         canvas.width = w
         canvas.height = h
         ctx.imageSmoothingEnabled = false
         const src = document.createElement('canvas')
-        src.width = drawData.width
-        src.height = drawData.height
+        src.width = gw
+        src.height = gh
         src.getContext('2d')!.putImageData(drawData, 0, 0)
         ctx.drawImage(src, 0, 0, w, h)
-        if (showGrid.value && store.beadPattern) {
-          drawGrid(ctx, drawData.width, drawData.height, store.beadPattern.gridWidth, store.beadPattern.gridHeight)
+        if (showGrid.value && p) {
+          drawGrid(ctx, w, h, p.gridWidth, p.gridHeight)
         }
-        if (showCodes.value && store.beadPattern && zoom.value >= 2) {
-          drawCodes(ctx, drawData.width, drawData.height, store.beadPattern)
+        if (showCodes.value && p && zoom.value >= 2) {
+          drawCodes(ctx, w, h, p)
         }
       } else if (url) {
         const img = new Image()
@@ -179,28 +182,25 @@ export default defineComponent({
       }
     }
 
-    function drawGrid(ctx: CanvasRenderingContext2D, srcW: number, srcH: number, gw: number, gh: number) {
-      const z = zoom.value
-      const cW = srcW / gw * z
-      const cH = srcH / gh * z
+    function drawGrid(ctx: CanvasRenderingContext2D, cw: number, ch: number, gw: number, gh: number) {
+      const cW = cw / gw
+      const cH = ch / gh
       ctx.strokeStyle = 'rgba(128,128,128,0.15)'
       ctx.lineWidth = 0.5
       ctx.beginPath()
-      for (let x = 0; x <= gw; x++) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, gh * cH) }
-      for (let y = 0; y <= gh; y++) { ctx.moveTo(0, y * cH); ctx.lineTo(gw * cW, y * cH) }
+      for (let x = 0; x <= gw; x++) { ctx.moveTo(Math.round(x * cW) + 0.5, 0); ctx.lineTo(Math.round(x * cW) + 0.5, ch) }
+      for (let y = 0; y <= gh; y++) { ctx.moveTo(0, Math.round(y * cH) + 0.5); ctx.lineTo(cw, Math.round(y * cH) + 0.5) }
       ctx.stroke()
       ctx.strokeStyle = 'rgba(128,128,128,0.35)'
       ctx.lineWidth = 1
       ctx.beginPath()
-      for (let x = 0; x <= gw; x += 10) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, gh * cH) }
-      for (let y = 0; y <= gh; y += 10) { ctx.moveTo(0, y * cH); ctx.lineTo(gw * cW, y * cH) }
+      for (let x = 0; x <= gw; x += 10) { ctx.moveTo(Math.round(x * cW) + 0.5, 0); ctx.lineTo(Math.round(x * cW) + 0.5, ch) }
+      for (let y = 0; y <= gh; y += 10) { ctx.moveTo(0, Math.round(y * cH) + 0.5); ctx.lineTo(cw, Math.round(y * cH) + 0.5) }
       ctx.stroke()
     }
 
     function applyHighlight(d: ImageData, p: BeadPattern): ImageData {
       const out = new ImageData(new Uint8ClampedArray(d.data), d.width, d.height)
-      const cellW = d.width / p.gridWidth
-      const cellH = d.height / p.gridHeight
       const highlightSet = new Set<string>()
       for (const c of p.cells) {
         if (c.colorCode === store.highlightCode) highlightSet.add(`${c.x},${c.y}`)
@@ -208,54 +208,32 @@ export default defineComponent({
       for (let gy = 0; gy < p.gridHeight; gy++) {
         for (let gx = 0; gx < p.gridWidth; gx++) {
           if (highlightSet.has(`${gx},${gy}`)) continue
-          const sx = Math.floor(gx * cellW)
-          const sy = Math.floor(gy * cellH)
-          const ex = Math.floor((gx + 1) * cellW)
-          const ey = Math.floor((gy + 1) * cellH)
-          for (let py = sy; py < ey; py++) {
-            for (let px = sx; px < ex; px++) {
-              const idx = (py * d.width + px) * 4
-              const r = out.data[idx], g = out.data[idx + 1], b = out.data[idx + 2]
-              const gray = 30
-              out.data[idx] = gray
-              out.data[idx + 1] = gray
-              out.data[idx + 2] = gray
-            }
-          }
+          const idx = (gy * d.width + gx) * 4
+          out.data[idx] = 30
+          out.data[idx + 1] = 30
+          out.data[idx + 2] = 30
         }
       }
       return out
     }
 
-    function drawCodes(ctx: CanvasRenderingContext2D, srcW: number, srcH: number, p: BeadPattern) {
-      const z = zoom.value
-      const cellW = srcW / p.gridWidth
-      const cellH = srcH / p.gridHeight
-      const pixW = Math.round(cellW * z)
-      const pixH = Math.round(cellH * z)
-      const fontSize = Math.min(pixW * 0.4, pixH * 0.55, 16)
-      if (fontSize < 5) return
-
-      const textLayer = document.createElement('canvas')
-      textLayer.width = srcW
-      textLayer.height = srcH
-      const tCtx = textLayer.getContext('2d')!
-      const tFontSize = Math.min(cellW * 0.4, cellH * 0.55, 16)
-      if (tFontSize < 2) return
-      tCtx.font = `bold ${tFontSize}px monospace`
-      tCtx.textAlign = 'center'
-      tCtx.textBaseline = 'middle'
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function drawCodes(ctx: any, cw: number, ch: number, p: any) {
+      const gw = p.gridWidth
+      const gh = p.gridHeight
+      const cW = cw / gw
+      const cH = ch / gh
+      const fontSize = Math.min(cW * 0.4, cH * 0.55, 16)
+      if (fontSize < 5) { return }
+      ctx.font = `bold ${fontSize}px monospace`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
 
       for (const c of p.cells) {
         const lum = hexLuminance(c.hex)
-        tCtx.fillStyle = lum > 0.4 ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.9)'
-        tCtx.fillText(c.colorCode, (c.x + 0.5) * cellW, (c.y + 0.5) * cellH)
+        ctx.fillStyle = lum > 0.4 ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.9)'
+        ctx.fillText(c.colorCode, (c.x + 0.5) * cW, (c.y + 0.5) * cH)
       }
-
-      ctx.save()
-      ctx.imageSmoothingEnabled = false
-      ctx.drawImage(textLayer, 0, 0, srcW, srcH, 0, 0, srcW * z, srcH * z)
-      ctx.restore()
     }
 
     function hexLuminance(hex: string): number {
