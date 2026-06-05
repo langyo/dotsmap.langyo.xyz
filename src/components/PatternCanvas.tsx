@@ -526,8 +526,8 @@ export default defineComponent({
       ctx.fillStyle = '#d63384'
       ctx.fillRect(fx, fy, fw, 3)
 
-      const titleSize = Math.round(fh * 0.18)
-      const subSize = Math.round(fh * 0.09)
+      const titleSize = Math.round(fh * 0.24)
+      const subSize = Math.round(fh * 0.12)
       const qrSize = Math.round(fh * 0.55)
       const qrX = fx + fw - qrSize - 18
       const qrTopY = fy + Math.round((fh - qrSize) * 0.3)
@@ -585,18 +585,20 @@ export default defineComponent({
         const dotAreaLeft = fx + 18 + titleW + 24
         const dotAreaW = (qrX - 24) - dotAreaLeft
         if (dotAreaW > 20) {
-          const dotSize = Math.round(fh * 0.2)
+          const colsFor2 = Math.max(1, Math.floor(dotAreaW / (Math.round(fh * 0.28) * 1.15)))
+          const maxRows = sorted.length <= colsFor2 * 2 ? 2 : 3
+          const dotSize = Math.round(fh * (maxRows === 2 ? 0.28 : 0.2))
           const gap = Math.round(dotSize * 0.15)
           const step = dotSize + gap
           const fontSize = Math.round(dotSize * 0.3)
           const colsPerRow = Math.max(1, Math.floor(dotAreaW / step))
           const dotStartX = dotAreaLeft + Math.round((dotAreaW - Math.min(sorted.length, colsPerRow) * step + gap) / 2)
-          const dotStartY = fy + Math.round(fh * 0.18)
+          const dotStartY = qrTopY
 
           for (let i = 0; i < sorted.length; i++) {
             const col = i % colsPerRow
             const row = Math.floor(i / colsPerRow)
-            if (row >= 3) break
+            if (row >= maxRows) break
             const cx = dotStartX + col * step + dotSize / 2
             const cy = dotStartY + row * step + dotSize / 2
 
