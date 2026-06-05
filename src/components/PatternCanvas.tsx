@@ -1,7 +1,7 @@
 import { defineComponent, ref, watch, nextTick, computed, onMounted, onUnmounted } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { useImageProcessing } from '@/composables/useImageProcessing'
-import { ZoomIn, ZoomOut, Maximize2, Grid3x3, ImagePlus, X } from 'lucide-vue-next'
+import { ZoomIn, ZoomOut, Maximize2, Grid3x3, ImagePlus, X, Share2 } from 'lucide-vue-next'
 
 const ZOOM_LEVELS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4]
 const SB_SIZE = 10
@@ -443,6 +443,83 @@ export default defineComponent({
       setTimeout(() => URL.revokeObjectURL(url), 500)
     }
 
+    function downloadShare() {
+      const d = imgData.value
+      const p = store.beadPattern
+      if (!d || !p) return
+
+      const scale = Math.max(2, Math.ceil(800 / d.width))
+      const w = d.width * scale
+      const h = d.height * scale
+      const footerH = Math.round(Math.max(56, h * 0.07))
+
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h + footerH
+      const ctx = canvas.getContext('2d')!
+
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+      ctx.imageSmoothingEnabled = false
+      const src = document.createElement('canvas')
+      src.width = d.width
+      src.height = d.height
+      src.getContext('2d')!.putImageData(d, 0, 0)
+      ctx.drawImage(src, 0, 0, w, h)
+
+      const cW = w / p.gridWidth, cH = h / p.gridHeight
+      ctx.strokeStyle = 'rgba(128,128,128,0.15)'
+      ctx.lineWidth = 0.5
+      ctx.beginPath()
+      for (let x = 0; x <= p.gridWidth; x++) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, h) }
+      for (let y = 0; y <= p.gridHeight; y++) { ctx.moveTo(0, y * cH); ctx.lineTo(w, y * cH) }
+      ctx.stroke()
+      ctx.strokeStyle = 'rgba(128,128,128,0.35)'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      for (let x = 0; x <= p.gridWidth; x += 10) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, h) }
+      for (let y = 0; y <= p.gridHeight; y += 10) { ctx.moveTo(0, y * cH); ctx.lineTo(w, y * cH) }
+      ctx.stroke()
+
+      const accent = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim()
+      const primary = accent ? `rgb(${accent})` : 'rgb(255 107 157)'
+
+      ctx.fillStyle = '#f8f8f5'
+      ctx.fillRect(0, h, w, footerH)
+
+      ctx.fillStyle = primary
+      ctx.fillRect(0, h, w, 3)
+
+      const titleSize = Math.round(footerH * 0.28)
+      const subSize = Math.round(footerH * 0.2)
+
+      ctx.fillStyle = '#222'
+      ctx.font = `bold ${titleSize}px sans-serif`
+      ctx.textBaseline = 'middle'
+      ctx.textAlign = 'left'
+      ctx.fillText('DotsMap', 14, h + footerH * 0.38)
+
+      ctx.fillStyle = '#888'
+      ctx.font = `${subSize}px sans-serif`
+      ctx.fillText(
+        `${store.currentBrand.name} · ${p.gridWidth}×${p.gridHeight} · ${store.selectedPalette.length}色`,
+        14,
+        h + footerH * 0.7,
+      )
+
+      ctx.fillStyle = primary
+      ctx.textAlign = 'right'
+      ctx.font = `${subSize}px sans-serif`
+      ctx.fillText('dotsmap.langyo.xyz', w - 14, h + footerH * 0.55)
+      ctx.textAlign = 'left'
+
+      const a = document.createElement('a')
+      a.download = 'dotsmap-share.png'
+      a.href = canvas.toDataURL()
+      a.click()
+    }
+
     watch(
       () => [store.beadedDataURL, store.processedDataURL, store.sourceDataURL, showGrid.value, zoom.value] as const,
       () => nextTick(() => {
@@ -525,6 +602,7 @@ export default defineComponent({
                   />
                 </div>
                 <div class="flex gap-0.5">
+                  <button class="btn btn-sm" onClick={downloadShare}><Share2 size={12} /> 分享</button>
                   <button class="btn btn-sm" onClick={downloadPNG}>PNG</button>
                   <button class="btn btn-sm" onClick={downloadSVG}>SVG</button>
                   <button class="btn btn-sm" onClick={downloadCSV}>CSV</button>

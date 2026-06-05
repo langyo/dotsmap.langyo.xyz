@@ -1,6 +1,7 @@
 import { defineComponent, ref, watch, onMounted, onUnmounted } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { useDarkMode } from '@/composables/useDarkMode'
+import { useImageProcessing } from '@/composables/useImageProcessing'
 import PreprocessPanel from './PreprocessPanel'
 import PaletteSelector from './PaletteSelector'
 import PatternCanvas from './PatternCanvas'
@@ -12,6 +13,7 @@ export default defineComponent({
   setup() {
     const store = useAppStore()
     const { isDark, toggle: toggleDark } = useDarkMode()
+    const { generatePattern } = useImageProcessing()
     const showAbout = ref(false)
     const leftOpen = ref(false)
     const rightOpen = ref(false)
@@ -22,6 +24,13 @@ export default defineComponent({
         rightOpen.value = false
       }
     })
+
+    watch(
+      () => [store.currentBrand.id, store.selectedPaletteCount, store.gridWidth, store.gridHeight] as const,
+      () => {
+        if (store.sourceImage) generatePattern()
+      },
+    )
 
     function closeAll() {
       leftOpen.value = false

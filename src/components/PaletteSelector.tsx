@@ -1,14 +1,11 @@
 import { defineComponent, ref, computed } from 'vue'
 import { useAppStore } from '@/stores/app'
-import { useImageProcessing } from '@/composables/useImageProcessing'
 import { categoryLabel, type BeadCategory } from '@/data/perlerColors'
-import { Loader2 } from 'lucide-vue-next'
 
 export default defineComponent({
   name: 'PaletteSelector',
   setup() {
     const store = useAppStore()
-    const { generatePattern } = useImageProcessing()
     const selectedCategory = ref<BeadCategory | null>(null)
 
     const categories = computed(() => {
@@ -101,16 +98,6 @@ export default defineComponent({
               onChange={(e) => { const v = parseInt((e.target as HTMLInputElement).value, 10); if (v > 0) store.setGridSize(store.gridWidth, v) }} />
           </label>
         </div>
-
-        <button
-          class="btn btn-primary w-full py-2 text-sm font-medium"
-          disabled={store.isProcessing || !store.sourceImage}
-          onClick={generatePattern}
-        >
-          {store.isProcessing
-            ? <><Loader2 size={14} class="animate-spin" /> 处理中</>
-            : '生成拼豆图纸'}
-        </button>
       </div>
     )
   },
