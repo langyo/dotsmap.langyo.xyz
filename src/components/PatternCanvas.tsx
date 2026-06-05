@@ -1,7 +1,8 @@
 import { defineComponent, ref, watch, nextTick, computed, onMounted, onUnmounted } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { useImageProcessing } from '@/composables/useImageProcessing'
-import { ZoomIn, ZoomOut, Maximize2, Grid3x3, ImagePlus, X, Share2 } from 'lucide-vue-next'
+import type { BeadPattern } from '@/types'
+import { ZoomIn, ZoomOut, Maximize2, Grid3x3, Hash, ImagePlus, X, Share2 } from 'lucide-vue-next'
 
 const ZOOM_LEVELS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4]
 const SB_SIZE = 10
@@ -19,6 +20,7 @@ export default defineComponent({
     const vpRef = ref<HTMLDivElement>()
     const mmRef = ref<HTMLCanvasElement>()
     const showGrid = ref(true)
+    const showCodes = ref(false)
     const zoom = ref(1)
     const panX = ref(0)
     const panY = ref(0)
@@ -140,21 +142,26 @@ export default defineComponent({
       if (!d && !url) return
 
       if (d) {
-        const w = Math.round(d.width * zoom.value)
-        const h = Math.round(d.height * zoom.value)
+        let drawData = d
+        if (store.highlightCode && store.beadPattern) {
+          drawData = applyHighlight(d, store.beadPattern)
+        }
+
+        const w = Math.round(drawData.width * zoom.value)
+        const h = Math.round(drawData.height * zoom.value)
         canvas.width = w
         canvas.height = h
         ctx.imageSmoothingEnabled = zoom.value <= 2
         const src = document.createElement('canvas')
-        src.width = d.width
-        src.height = d.height
-        src.getContext('2d')!.putImageData(d, 0, 0)
+        src.width = drawData.width
+        src.height = drawData.height
+        src.getContext('2d')!.putImageData(drawData, 0, 0)
         ctx.drawImage(src, 0, 0, w, h)
-        if (store.highlightCode && store.beadPattern) {
-          drawHighlight(ctx, w, h, store.beadPattern.gridWidth, store.beadPattern.gridHeight)
-        }
         if (showGrid.value && store.beadPattern) {
           drawGrid(ctx, w, h, store.beadPattern.gridWidth, store.beadPattern.gridHeight)
+        }
+        if (showCodes.value && store.beadPattern && zoom.value >= 2) {
+          drawCodes(ctx, drawData.width, drawData.height, store.beadPattern)
         }
       } else if (url) {
         const img = new Image()
@@ -188,16 +195,72 @@ export default defineComponent({
       ctx.stroke()
     }
 
-    function drawHighlight(ctx: CanvasRenderingContext2D, cw: number, ch: number, gw: number, gh: number) {
-      const p = store.beadPattern
-      if (!p) return
-      const cW = cw / gw, cH = ch / gh
-      ctx.fillStyle = 'rgba(128,128,128,0.75)'
+    function applyHighlight(d: ImageData, p: BeadPattern): ImageData {
+      const out = new ImageData(new Uint8ClampedArray(d.data), d.width, d.height)
+      const cellW = d.width / p.gridWidth
+      const cellH = d.height / p.gridHeight
+      const highlightSet = new Set<string>()
       for (const c of p.cells) {
-        if (c.colorCode !== store.highlightCode) {
-          ctx.fillRect(c.x * cW, c.y * cH, cW, cH)
+        if (c.colorCode === store.highlightCode) highlightSet.add(`${c.x},${c.y}`)
+      }
+      for (let gy = 0; gy < p.gridHeight; gy++) {
+        for (let gx = 0; gx < p.gridWidth; gx++) {
+          if (highlightSet.has(`${gx},${gy}`)) continue
+          const sx = Math.floor(gx * cellW)
+          const sy = Math.floor(gy * cellH)
+          const ex = Math.floor((gx + 1) * cellW)
+          const ey = Math.floor((gy + 1) * cellH)
+          for (let py = sy; py < ey; py++) {
+            for (let px = sx; px < ex; px++) {
+              const idx = (py * d.width + px) * 4
+              const r = out.data[idx], g = out.data[idx + 1], b = out.data[idx + 2]
+              const gray = 30
+              out.data[idx] = gray
+              out.data[idx + 1] = gray
+              out.data[idx + 2] = gray
+            }
+          }
         }
       }
+      return out
+    }
+
+    function drawCodes(ctx: CanvasRenderingContext2D, srcW: number, srcH: number, p: BeadPattern) {
+      const z = zoom.value
+      const cellW = srcW / p.gridWidth
+      const cellH = srcH / p.gridHeight
+      const pixW = Math.round(cellW * z)
+      const pixH = Math.round(cellH * z)
+      const fontSize = Math.min(pixW * 0.4, pixH * 0.55, 16)
+      if (fontSize < 5) return
+
+      const textLayer = document.createElement('canvas')
+      textLayer.width = srcW
+      textLayer.height = srcH
+      const tCtx = textLayer.getContext('2d')!
+      const tFontSize = Math.min(cellW * 0.4, cellH * 0.55, 16)
+      if (tFontSize < 2) return
+      tCtx.font = `bold ${tFontSize}px monospace`
+      tCtx.textAlign = 'center'
+      tCtx.textBaseline = 'middle'
+
+      for (const c of p.cells) {
+        const lum = hexLuminance(c.hex)
+        tCtx.fillStyle = lum > 0.4 ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.9)'
+        tCtx.fillText(c.colorCode, (c.x + 0.5) * cellW, (c.y + 0.5) * cellH)
+      }
+
+      ctx.save()
+      ctx.imageSmoothingEnabled = false
+      ctx.drawImage(textLayer, 0, 0, srcW, srcH, 0, 0, srcW * z, srcH * z)
+      ctx.restore()
+    }
+
+    function hexLuminance(hex: string): number {
+      const r = parseInt(hex.slice(1, 3), 16) / 255
+      const g = parseInt(hex.slice(3, 5), 16) / 255
+      const b = parseInt(hex.slice(5, 7), 16) / 255
+      return 0.299 * r + 0.587 * g + 0.114 * b
     }
 
     function buildMinimapBg() {
@@ -536,7 +599,7 @@ export default defineComponent({
     }
 
     watch(
-      () => [store.beadedDataURL, store.processedDataURL, store.sourceDataURL, store.highlightCode, showGrid.value, zoom.value] as const,
+      () => [store.beadedDataURL, store.processedDataURL, store.sourceDataURL, store.highlightCode, showGrid.value, showCodes.value, zoom.value] as const,
       () => nextTick(() => {
         drawPattern()
         buildMinimapBg()
@@ -614,6 +677,16 @@ export default defineComponent({
                     aria-checked={showGrid.value}
                     aria-label="网格"
                     onClick={() => showGrid.value = !showGrid.value}
+                  />
+                </div>
+                <div class="flex items-center gap-1.5 text-xs select-none">
+                  <Hash size={14} />
+                  <button
+                    class={`switch ${showCodes.value ? 'active' : ''}`}
+                    role="switch"
+                    aria-checked={showCodes.value}
+                    aria-label="色号"
+                    onClick={() => showCodes.value = !showCodes.value}
                   />
                 </div>
                 <div class="flex gap-0.5">
