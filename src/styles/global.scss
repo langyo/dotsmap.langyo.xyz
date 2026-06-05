@@ -1,35 +1,35 @@
 :root {
-  --color-primary: 99 102 241;
-  --color-secondary: 139 92 246;
-  --color-accent: 14 165 233;
+  --color-primary: 214 51 132;
+  --color-secondary: 156 106 222;
+  --color-accent: 230 167 0;
   --color-text: 30 30 30;
-  --color-muted: 115 115 130;
-  --color-border: 200 200 208;
-  --color-background: 246 246 250;
+  --color-muted: 80 80 80;
+  --color-border: 0 0 0;
+  --color-background: 245 245 240;
   --color-surface: 255 255 255;
-  --color-success: 34 197 94;
+  --color-success: 16 185 129;
   --color-error: 239 68 68;
   --color-warning: 245 158 11;
   --color-info: 6 182 212;
-  --cl: #eee;
+  --cl: #e8e8e3;
   --cd: #ddd;
 }
 
 [data-mode="dark"] {
-  --color-primary: 129 140 248;
-  --color-secondary: 167 139 250;
-  --color-accent: 56 189 248;
-  --color-text: 228 228 234;
-  --color-muted: 130 130 150;
-  --color-border: 55 55 70;
-  --color-background: 16 16 22;
-  --color-surface: 24 24 32;
-  --color-success: 74 222 128;
-  --color-error: 252 129 129;
-  --color-warning: 251 191 36;
-  --color-info: 34 211 238;
-  --cl: #2a2a2a;
-  --cd: #222;
+  --color-primary: 255 107 157;
+  --color-secondary: 199 146 234;
+  --color-accent: 253 235 139;
+  --color-text: 228 228 231;
+  --color-muted: 180 180 180;
+  --color-border: 255 255 255;
+  --color-background: 14 14 30;
+  --color-surface: 24 24 42;
+  --color-success: 114 241 184;
+  --color-error: 255 107 107;
+  --color-warning: 253 235 139;
+  --color-info: 110 231 239;
+  --cl: #1a1a2e;
+  --cd: #16162a;
 }
 
 *,
