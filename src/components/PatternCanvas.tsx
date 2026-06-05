@@ -582,8 +582,8 @@ export default defineComponent({
       ctx.textAlign = 'left'
 
       if (sorted.length > 0) {
-        const dotAreaLeft = fx + 18 + titleW + 24
-        const dotAreaW = (qrX - 24) - dotAreaLeft
+        const dotAreaLeft = fx + 18 + titleW + 48
+        const dotAreaW = (qrX - 48) - dotAreaLeft
         if (dotAreaW > 20) {
           const colsFor2 = Math.max(1, Math.floor(dotAreaW / (Math.round(fh * 0.28) * 1.15)))
           const maxRows = sorted.length <= colsFor2 * 2 ? 2 : 3
