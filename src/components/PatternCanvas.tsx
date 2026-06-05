@@ -473,6 +473,11 @@ export default defineComponent({
         resizeObs.observe(vpRef.value)
         updateVpSize()
       }
+      nextTick(() => {
+        drawPattern()
+        buildMinimapBg()
+        drawMinimap()
+      })
     })
 
     onUnmounted(() => {

@@ -2,7 +2,7 @@ import { defineComponent, ref, computed } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { useImageProcessing } from '@/composables/useImageProcessing'
 import { categoryLabel, type BeadCategory } from '@/data/perlerColors'
-import { Palette, Loader2 } from 'lucide-vue-next'
+import { Loader2 } from 'lucide-vue-next'
 
 export default defineComponent({
   name: 'PaletteSelector',
@@ -26,11 +26,22 @@ export default defineComponent({
     })
 
     return () => (
-      <div class="panel">
-        <h3 class="panel-title">
-          <Palette size={16} />
-          色系与尺寸
-        </h3>
+      <div class="panel space-y-3">
+        <div class="space-y-1.5">
+          <span class="text-xs text-text-secondary">拼豆品牌</span>
+          <div class="flex flex-wrap gap-1">
+            {store.brands.map((b) => (
+              <button
+                key={b.id}
+                class={`btn btn-sm ${store.currentBrand.id === b.id ? 'btn-primary' : ''}`}
+                onClick={() => store.setBrand(b)}
+              >
+                {b.shortName}
+              </button>
+            ))}
+          </div>
+          <p class="text-xs text-text-secondary">{store.currentBrand.name} · {store.currentBrand.colors.length}色</p>
+        </div>
 
         <div class="space-y-1.5">
           <span class="text-xs text-text-secondary">拼豆色系</span>

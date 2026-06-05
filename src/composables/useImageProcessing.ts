@@ -36,6 +36,7 @@ export function useImageProcessing() {
       if (!ctx) throw new Error('Canvas not supported')
       ctx.drawImage(img, 0, 0)
       store.setSourceImage(img, canvas.toDataURL())
+      generatePattern()
     } catch (err) {
       handleError(err, '图片加载失败')
     } finally {
@@ -59,6 +60,7 @@ export function useImageProcessing() {
       }
 
       store.setProcessedImage(imageData, dataURLFromImageData(imageData))
+      generatePattern()
     } catch (err) {
       handleError(err, '预处理失败')
     } finally {
@@ -137,5 +139,10 @@ export function useImageProcessing() {
     store.resetAll()
   }
 
-  return { handleFileUpload, applyPreprocessing, generatePattern, resetAll }
+  function resetAndRegenerate() {
+    store.resetPreprocess()
+    generatePattern()
+  }
+
+  return { handleFileUpload, applyPreprocessing, generatePattern, resetAll, resetAndRegenerate }
 }
