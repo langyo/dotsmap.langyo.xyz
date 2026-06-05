@@ -100,10 +100,15 @@ export default defineComponent({
 
     function fitToViewport() {
       const d = imgData.value
-      if (!d || vpW.value === 0) return
-      const fitW = vpW.value / d.width
-      const fitH = vpH.value / d.height
-      zoom.value = Math.max(1, Math.floor(Math.min(fitW, fitH)))
+      if (!d) return
+      const baseZoom = 12
+      if (vpW.value > 0 && vpH.value > 0) {
+        const fitW = vpW.value / d.width
+        const fitH = vpH.value / d.height
+        zoom.value = Math.max(baseZoom, Math.floor(Math.min(fitW, fitH)))
+      } else {
+        zoom.value = baseZoom
+      }
       centerView()
     }
 
@@ -619,6 +624,7 @@ export default defineComponent({
         updateVpSize()
       }
       nextTick(() => {
+        fitToViewport()
         drawPattern()
         buildMinimapBg()
         drawMinimap()
