@@ -129,7 +129,7 @@ export default defineComponent({
         <div class="h-[100dvh] bg-background text-text font-sans transition-colors duration-200 flex flex-col overflow-hidden">
           {header}
           <div class="flex-1 min-h-0 p-2 lg:p-3">
-            <div class="drawer-layout" style={{ height: '100%', alignItems: 'stretch' }}>
+            <div class="drawer-layout" style={{ height: '100%' }}>
               <aside class={`drawer-panel dp-l ${leftOpen.value ? 'open' : ''}`}>
                 <div class="drawer-head">
                   <span class="text-sm font-semibold">配置面板</span>

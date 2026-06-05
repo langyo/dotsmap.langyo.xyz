@@ -55,6 +55,29 @@ body {
   transition: background-color 0.3s, color 0.3s;
 }
 
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--color-text) / 20%) transparent;
+
+  &::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(var(--color-text) / 20%);
+    border-radius: 10px;
+
+    &:hover {
+      background: rgba(var(--color-text) / 35%);
+    }
+  }
+}
+
 #app { min-height: 100vh; }
 img { max-width: 100%; height: auto; }
 button { cursor: pointer; font-family: inherit; }
@@ -376,16 +399,17 @@ input[type="range"] {
 .drawer-panel {
   width: 320px;
   flex-shrink: 0;
-  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   overflow-y: auto;
+  overflow-x: hidden;
 
   @media (min-width: 1024px) {
     position: sticky;
-    top: 4.5rem;
-    max-height: calc(100vh - 5.5rem);
+    top: 0;
+    height: calc(100dvh - 1.5rem);
+    align-self: flex-start;
   }
 
   @media (max-width: 1023px) {
