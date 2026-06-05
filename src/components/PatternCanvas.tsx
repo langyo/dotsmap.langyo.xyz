@@ -216,7 +216,7 @@ export default defineComponent({
           </h3>
           {store.beadPattern && (
             <div class="flex items-center gap-1.5 flex-wrap">
-              <div class="flex items-center gap-0.5 bg-background rounded-lg border border-border px-1 py-0.5">
+              <div class="flex items-center gap-0.5 bg-background rounded-2xl border border-border px-1 py-0.5">
                 <button class="btn-icon" onClick={() => cycleZoom(-1)} title="缩小" aria-label="缩小"><ZoomOut size={14} /></button>
                 <span class="text-xs font-mono w-10 text-center select-none">{Math.round(zoom.value * 100)}%</span>
                 <button class="btn-icon" onClick={() => cycleZoom(1)} title="放大" aria-label="放大"><ZoomIn size={14} /></button>
@@ -247,7 +247,7 @@ export default defineComponent({
 
         {hoverCell.value && (
           <div class="flex items-center gap-2 text-xs text-text-secondary mt-1">
-            <div class="w-3 h-3 rounded-sm border border-black/10"
+            <div class="w-3 h-3 rounded-full border border-black/10"
               style={{ backgroundColor: store.selectedPalette.find((c) => c.code === hoverCell.value!.code)?.hex ?? '#888' }} />
             <span class="font-mono">({hoverCell.value.x}, {hoverCell.value.y})</span>
             <span>{hoverCell.value.name}</span>
@@ -255,7 +255,7 @@ export default defineComponent({
         )}
 
         {store.error && (
-          <div class="text-xs text-error bg-error/10 rounded-lg p-2">{store.error}</div>
+          <div class="text-xs text-error bg-error/10 rounded-2xl p-2">{store.error}</div>
         )}
       </div>
     )

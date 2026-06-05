@@ -1,6 +1,7 @@
-import { defineComponent } from 'vue'
+import { defineComponent, ref, computed } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { useImageProcessing } from '@/composables/useImageProcessing'
+import { categoryLabel, type BeadCategory } from '@/data/perlerColors'
 import { Palette, Loader2 } from 'lucide-vue-next'
 
 export default defineComponent({
@@ -8,6 +9,21 @@ export default defineComponent({
   setup() {
     const store = useAppStore()
     const { generatePattern } = useImageProcessing()
+    const showCategoryFilter = ref(false)
+    const selectedCategory = ref<BeadCategory | null>(null)
+
+    const categories = computed(() => {
+      const cats = new Map<BeadCategory, number>()
+      for (const c of store.selectedPalette) {
+        cats.set(c.category, (cats.get(c.category) ?? 0) + 1)
+      }
+      return Array.from(cats.entries()).sort((a, b) => b[1] - a[1])
+    })
+
+    const filteredPalette = computed(() => {
+      if (!selectedCategory.value) return store.selectedPalette
+      return store.selectedPalette.filter((c) => c.category === selectedCategory.value)
+    })
 
     return () => (
       <div class="panel">
@@ -31,15 +47,45 @@ export default defineComponent({
           </div>
         </div>
 
+        <div class="space-y-1">
+          <button
+            class="flex items-center gap-1 text-xs text-text-secondary hover:text-primary transition-colors"
+            onClick={() => (showCategoryFilter.value = !showCategoryFilter.value)}
+          >
+            {categoryLabel[store.currentBrand.colors[0]?.category] ? '分类筛选' : ''}
+            <span class="text-primary">{showCategoryFilter.value ? '收起' : '展开'}</span>
+          </button>
+          {showCategoryFilter.value && (
+            <div class="flex flex-wrap gap-1 animate-fade-in">
+              <button
+                key="all"
+                class={`btn btn-sm ${!selectedCategory.value ? 'btn-primary' : ''}`}
+                onClick={() => (selectedCategory.value = null)}
+              >
+                全部({store.selectedPalette.length})
+              </button>
+              {categories.value.map(([cat, cnt]) => (
+                <button
+                  key={cat}
+                  class={`btn btn-sm ${selectedCategory.value === cat ? 'btn-primary' : ''}`}
+                  onClick={() => (selectedCategory.value = selectedCategory.value === cat ? null : cat)}
+                >
+                  {categoryLabel[cat]}({cnt})
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         <details>
           <summary class="text-xs text-text-secondary cursor-pointer hover:text-primary transition-colors">
-            色板预览 ({store.selectedPalette.length})
+            色板预览 ({filteredPalette.value.length})
           </summary>
-          <div class="flex flex-wrap gap-0.5 max-h-36 overflow-y-auto p-1 mt-1.5 rounded-lg bg-background">
-            {store.selectedPalette.map((col) => (
+          <div class="flex flex-wrap gap-0.5 max-h-36 overflow-y-auto p-1 mt-1.5 rounded-2xl bg-background">
+            {filteredPalette.value.map((col) => (
               <div
                 key={col.code}
-                class="w-4 h-4 rounded-sm border border-black/10 flex-shrink-0 transition-transform hover:scale-150 hover:z-10"
+                class="w-4 h-4 rounded-full border border-black/10 flex-shrink-0 transition-transform hover:scale-150 hover:z-10"
                 style={{ backgroundColor: col.hex }}
                 title={`${col.code} ${col.name} (${col.hex})`}
               />

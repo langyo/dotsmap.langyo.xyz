@@ -101,7 +101,7 @@ export default defineComponent({
         )}
 
         {store.sourceDataURL && store.preprocessMode !== 'none' && (
-          <div class="rounded-lg overflow-hidden border border-border bg-checkerboard">
+          <div class="rounded-2xl overflow-hidden border border-border bg-checkerboard">
             <img
               src={store.processedDataURL ?? store.sourceDataURL}
               alt="Preview"

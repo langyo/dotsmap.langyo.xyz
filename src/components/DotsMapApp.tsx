@@ -36,11 +36,11 @@ export default defineComponent({
             <div class="lg:col-span-4 xl:col-span-3 sm:space-y-3 space-y-2">
               <div class="panel">
                 <div class="panel-title text-sm">品牌</div>
-                <div class="flex gap-1">
+                <div class="flex flex-wrap gap-1">
                   {store.brands.map((b) => (
                     <button
                       key={b.id}
-                      class={`btn btn-sm flex-1 ${store.currentBrand.id === b.id ? 'btn-primary' : ''}`}
+                      class={`btn btn-sm ${store.currentBrand.id === b.id ? 'btn-primary' : ''}`}
                       onClick={() => store.setBrand(b)}
                     >
                       {b.shortName}
