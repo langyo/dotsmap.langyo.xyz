@@ -64,61 +64,61 @@ export default defineComponent({
       </div>
     )
 
-    const footer = (
-      <footer class="border-t border-border bg-background/80 backdrop-blur-md px-4 py-4 mt-auto">
-        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-text-secondary">
-          <span>© {new Date().getFullYear()} DotsMap · 为绫波丽的拼豆爱好而作</span>
-          <span>备案信息占位</span>
-        </div>
-      </footer>
-    )
-
-    const aboutDialog = aboutOpen.value && (
-      <>
-        <div class="drawer-backdrop" onClick={() => aboutOpen.value = false} />
-        <div class="about-dialog animate-fade-in">
-          <div class="about-dialog-header">
-            <span class="text-sm font-semibold">关于 DotsMap</span>
-            <button class="btn-icon" onClick={() => aboutOpen.value = false}><X size={14} /></button>
-          </div>
-          <div class="about-dialog-body">
-            <p><span class="text-primary font-semibold">DotsMap</span> 是一个为 <span class="font-semibold">绫波丽</span> 制作的小作品，用于辅助拼豆创作，将任意图片转化为拼豆图纸。</p>
-            <p>支持多品牌色号匹配，AI 色彩量化，离线使用。</p>
-            <div class="about-dialog-divider" />
-            <div class="flex items-center gap-3">
-              <span class="text-xs text-text-secondary">作者：</span>
-              <a
-                href="https://github.com/langyo"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="about-link"
-              >
-                <Github size={13} />
-                langyo
-              </a>
-            </div>
-            <div class="flex items-center gap-3">
-              <span class="text-xs text-text-secondary">仓库：</span>
-              <a
-                href="https://github.com/langyo/dotsmap.langyo.xyz"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="about-link"
-              >
-                <Github size={13} />
-                dotsmap.langyo.xyz
-              </a>
-            </div>
-            <p class="text-xs text-text-secondary mt-2">本工具完全开源，欢迎 Star & PR。</p>
-          </div>
-        </div>
-      </>
-    )
-
     return () => {
       const hasSource = !!store.sourceDataURL
       const hasPattern = !!store.beadPattern
       const anyOpen = leftOpen.value || rightOpen.value
+
+      const footer = (
+        <footer class="border-t border-border bg-background/80 backdrop-blur-md px-4 py-4 mt-auto">
+          <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-text-secondary">
+            <span>© {new Date().getFullYear()} DotsMap</span>
+            <span>备案信息占位</span>
+          </div>
+        </footer>
+      )
+
+      const aboutDialog = aboutOpen.value && (
+        <>
+          <div class="about-backdrop" onClick={() => aboutOpen.value = false} />
+          <div class="about-dialog animate-fade-in">
+            <div class="about-dialog-header">
+              <span class="text-sm font-semibold">关于 DotsMap</span>
+              <button class="btn-icon" onClick={() => aboutOpen.value = false}><X size={14} /></button>
+            </div>
+            <div class="about-dialog-body">
+              <p><span class="text-primary font-semibold">DotsMap</span> 是一个为 <span class="font-semibold">绫波丽</span> 制作的小作品，用于辅助拼豆创作，将任意图片转化为拼豆图纸。</p>
+              <p>支持多品牌色号匹配，AI 色彩量化，离线使用。</p>
+              <div class="about-dialog-divider" />
+              <div class="flex items-center gap-3">
+                <span class="text-xs text-text-secondary">作者：</span>
+                <a
+                  href="https://github.com/langyo"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="about-link"
+                >
+                  <Github size={13} />
+                  langyo
+                </a>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="text-xs text-text-secondary">仓库：</span>
+                <a
+                  href="https://github.com/langyo/dotsmap.langyo.xyz"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="about-link"
+                >
+                  <Github size={13} />
+                  dotsmap.langyo.xyz
+                </a>
+              </div>
+              <p class="text-xs text-text-secondary mt-2">本工具完全开源，欢迎 Star & PR。</p>
+            </div>
+          </div>
+        </>
+      )
 
       const header = (
         <header class="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-md px-4 sm:py-3 py-2">
