@@ -1,11 +1,13 @@
 import { defineComponent, ref, computed } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { useImageProcessing } from '@/composables/useImageProcessing'
 import { categoryLabel, type BeadCategory } from '@/data/perlerColors'
 
 export default defineComponent({
   name: 'PaletteSelector',
   setup() {
     const store = useAppStore()
+    const { applyPreprocessing, resetAndRegenerate } = useImageProcessing()
     const selectedCategory = ref<BeadCategory | null>(null)
 
     const categories = computed(() => {
@@ -20,6 +22,12 @@ export default defineComponent({
       if (!selectedCategory.value) return store.selectedPalette
       return store.selectedPalette.filter((c) => c.category === selectedCategory.value)
     })
+
+    const ppModes = [
+      { value: 'none' as const, label: '无' },
+      { value: 'remove-bg' as const, label: '去背景' },
+      { value: 'magic-wand' as const, label: '魔术棒' },
+    ]
 
     return () => (
       <div class="panel space-y-3">
@@ -97,6 +105,60 @@ export default defineComponent({
             <input type="number" class="input mt-1" value={store.gridHeight} min={1} max={200}
               onChange={(e) => { const v = parseInt((e.target as HTMLInputElement).value, 10); if (v > 0) store.setGridSize(store.gridWidth, v) }} />
           </label>
+        </div>
+
+        <div class="border-t border-border/40 pt-2 space-y-2">
+          <span class="text-xs text-text-secondary">预处理</span>
+          <div class="flex gap-1">
+            {ppModes.map((m) => (
+              <button
+                key={m.value}
+                class={`btn btn-sm flex-1 ${store.preprocessMode === m.value ? 'btn-primary' : ''}`}
+                onClick={() => store.setPreprocessMode(m.value)}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+
+          {store.preprocessMode === 'remove-bg' && (
+            <label class="block animate-fade-in">
+              <div class="flex justify-between text-xs text-text-secondary mb-1">
+                <span>背景阈值</span>
+                <span class="font-mono">{store.bgThreshold}</span>
+              </div>
+              <input type="range" class="w-full" min={5} max={120} value={store.bgThreshold}
+                onInput={(e) => (store.bgThreshold = parseInt((e.target as HTMLInputElement).value))} />
+            </label>
+          )}
+
+          {store.preprocessMode === 'magic-wand' && (
+            <label class="block animate-fade-in">
+              <div class="flex justify-between text-xs text-text-secondary mb-1">
+                <span>容差</span>
+                <span class="font-mono">{store.magicTolerance}</span>
+              </div>
+              <input type="range" class="w-full" min={5} max={120} value={store.magicTolerance}
+                onInput={(e) => (store.magicTolerance = parseInt((e.target as HTMLInputElement).value))} />
+            </label>
+          )}
+
+          {store.preprocessMode === 'magic-wand' && (
+            <div class="hint">点击画布选取要保留的区域</div>
+          )}
+
+          <div class="flex gap-2">
+            {store.preprocessMode !== 'none' && (
+              <button class="btn btn-sm btn-primary flex-1" onClick={applyPreprocessing} disabled={store.isProcessing}>
+                应用并重新生成
+              </button>
+            )}
+            {store.processedDataURL && (
+              <button class="btn btn-sm flex-1" onClick={resetAndRegenerate}>
+                撤销
+              </button>
+            )}
+          </div>
         </div>
       </div>
     )

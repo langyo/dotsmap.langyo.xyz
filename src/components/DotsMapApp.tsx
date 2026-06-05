@@ -2,11 +2,10 @@ import { defineComponent, ref, watch, onMounted, onUnmounted } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { useDarkMode } from '@/composables/useDarkMode'
 import { useImageProcessing } from '@/composables/useImageProcessing'
-import PreprocessPanel from './PreprocessPanel'
 import PaletteSelector from './PaletteSelector'
 import PatternCanvas from './PatternCanvas'
 import BeadLegend from './BeadLegend'
-import { Sun, Moon, Menu, X, Info, Github, ListFilter } from 'lucide-vue-next'
+import { Sun, Moon, Menu, X, Info, Github } from 'lucide-vue-next'
 
 export default defineComponent({
   name: 'DotsMapApp',
@@ -16,13 +15,9 @@ export default defineComponent({
     const { generatePattern } = useImageProcessing()
     const showAbout = ref(false)
     const leftOpen = ref(false)
-    const rightOpen = ref(false)
 
     watch(() => store.sourceDataURL, (val) => {
-      if (!val) {
-        leftOpen.value = false
-        rightOpen.value = false
-      }
+      if (!val) leftOpen.value = false
     })
 
     watch(
@@ -32,13 +27,8 @@ export default defineComponent({
       },
     )
 
-    function closeAll() {
-      leftOpen.value = false
-      rightOpen.value = false
-    }
-
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') closeAll()
+      if (e.key === 'Escape') leftOpen.value = false
     }
 
     onMounted(() => window.addEventListener('keydown', onKey))
@@ -47,7 +37,6 @@ export default defineComponent({
     return () => {
       const hasSource = !!store.sourceDataURL
       const hasPattern = !!store.beadPattern
-      const anyOpen = leftOpen.value || rightOpen.value
 
       const footer = (
         <footer class="border-t border-border bg-background/80 backdrop-blur-md px-4 py-3">
@@ -147,34 +136,19 @@ export default defineComponent({
                   <button class="btn-icon" onClick={() => leftOpen.value = false}><X size={14} /></button>
                 </div>
                 <PaletteSelector />
-                <PreprocessPanel />
+                {hasPattern && <BeadLegend />}
               </aside>
 
               <div class="flex-1 min-w-0 min-h-0">
                 <PatternCanvas fullHeight />
               </div>
-
-              {hasPattern && (
-                <aside class={`drawer-panel dp-r ${rightOpen.value ? 'open' : ''}`}>
-                  <div class="drawer-head">
-                    <span class="text-sm font-semibold">统计</span>
-                    <button class="btn-icon" onClick={() => rightOpen.value = false}><X size={14} /></button>
-                  </div>
-                  <BeadLegend />
-                </aside>
-              )}
             </div>
           </div>
 
           <div class="hidden lg:block flex-shrink-0">{footer}</div>
 
-          {hasPattern && (
-            <button class="drawer-toggle dt-r lg:!hidden" onClick={() => rightOpen.value = !rightOpen.value} title="统计">
-              <ListFilter size={14} />
-            </button>
-          )}
+          {leftOpen.value && <div class="drawer-backdrop lg:!hidden" onClick={() => leftOpen.value = false} />}
 
-          {anyOpen && <div class="drawer-backdrop" onClick={closeAll} />}
           {aboutOverlay}
         </div>
       )
