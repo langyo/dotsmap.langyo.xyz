@@ -17,7 +17,7 @@
     "vue": "^3"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.40.0",
+    "@cloudflare/vite-plugin": "^1",
     "@eslint/js": "^9",
     "@types/node": "^22",
     "@vitejs/plugin-vue": "^5",
@@ -31,6 +31,6 @@
     "unocss": "^66",
     "vite": "^6",
     "vue-tsc": "^2",
-    "wrangler": "^4.98.0"
+    "wrangler": "^4"
   }
 }
