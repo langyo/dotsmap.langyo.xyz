@@ -5,11 +5,16 @@ import { artkal } from './brands/artkal'
 import { nabbi } from './brands/nabbi'
 import { artkalc } from './brands/artkalc'
 import { pyssla } from './brands/pyssla'
+import { mard } from './brands/mard'
+import { coco } from './brands/coco'
+import { manman } from './brands/manman'
+import { panpan } from './brands/panpan'
+import { mixiaowo } from './brands/mixiaowo'
 
 export type { BeadColor, BrandDef, ColorFamily }
-export { perler, hama, artkal, nabbi, artkalc, pyssla }
+export { perler, hama, artkal, nabbi, artkalc, pyssla, mard, coco, manman, panpan, mixiaowo }
 
-export const allBrands: BrandDef[] = [perler, hama, artkal, nabbi, artkalc, pyssla]
+export const allBrands: BrandDef[] = [mard, coco, manman, panpan, mixiaowo, perler, hama, artkal, nabbi, artkalc, pyssla]
 
 export const familyOrder: ColorFamily[] = [
   'white', 'gray', 'black',
