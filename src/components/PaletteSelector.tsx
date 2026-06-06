@@ -41,7 +41,7 @@ export default defineComponent({
     const i18nPaletteOptions = computed(() =>
       store.paletteOptions.map((opt) => ({
         ...opt,
-        i18nLabel: opt.label === '全部' ? t.value.all : `${opt.count}${t.value.colorUnit}`,
+        i18nLabel: opt.count === store.currentBrand.colors.length ? t.value.all : `${opt.count}${t.value.colorUnit}`,
       })),
     )
 
