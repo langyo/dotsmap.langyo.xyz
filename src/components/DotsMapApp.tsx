@@ -141,8 +141,8 @@ export default defineComponent({
             </div>
             <div class="flex items-center gap-1.5">
               {hasSource && (
-                <button class="btn-icon" onClick={handleHeaderReset} title="重置">
-                  <RotateCcw size={16} />
+                <button class="btn btn-sm" onClick={handleHeaderReset}>
+                  <RotateCcw size={14} /> 重置
                 </button>
               )}
               <button class="btn-icon" onClick={() => showAbout.value = true} title="关于">

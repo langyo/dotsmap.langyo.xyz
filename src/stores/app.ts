@@ -148,6 +148,8 @@ export const useAppStore = defineStore('app', () => {
     selectedPalette.value = fresh.mid.colors
     selectedPaletteLabel.value = fresh.mid.label
     selectedPaletteCount.value = fresh.mid.count
+    processedImageData.value = null
+    processedDataURL.value = null
     beadedImageData.value = null
     beadedDataURL.value = null
     beadPattern.value = null
@@ -157,6 +159,8 @@ export const useAppStore = defineStore('app', () => {
     bgThreshold.value = 2
     isProcessing.value = false
     colorUsage.value = {}
+    highlightCode.value = null
+    isRestoring.value = false
     error.value = null
   }
 
