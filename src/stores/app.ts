@@ -107,6 +107,7 @@ export const useAppStore = defineStore('app', () => {
   function setGridSize(w: number, h: number) {
     gridWidth.value = Math.max(1, Math.min(200, w))
     gridHeight.value = Math.max(1, Math.min(200, h))
+    highlightCode.value = null
   }
 
   function resetPreprocess() {
