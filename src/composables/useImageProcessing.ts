@@ -87,9 +87,6 @@ export function useImageProcessing() {
 
       const patternCells: Array<{ x: number; y: number; colorCode: string; colorName: string; hex: string }> = []
       const usage: Record<string, number> = {}
-
-      const cellW = resized.width / gw
-      const cellH = resized.height / gh
       const beadedData = new Uint8ClampedArray(gw * gh * 4)
 
       for (const cell of cells) {

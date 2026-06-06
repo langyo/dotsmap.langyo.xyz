@@ -282,8 +282,7 @@ export default defineComponent({
       return out
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    function drawCodes(ctx: any, cw: number, ch: number, p: any) {
+    function drawCodes(ctx: CanvasRenderingContext2D, cw: number, ch: number, p: BeadPattern) {
       const gw = p.gridWidth
       const gh = p.gridHeight
       const cW = cw / gw
@@ -475,8 +474,6 @@ export default defineComponent({
       if (!vpRef.value) return
       if (!store.beadPattern) return
       e.preventDefault()
-
-      const rect = vpRef.value.getBoundingClientRect()
 
       if (e.touches.length === 1) {
         const t = e.touches[0]
@@ -959,6 +956,7 @@ export default defineComponent({
           })
           return
         } catch {
+          // share cancelled or failed, fall back to download
         }
       }
 
