@@ -80,8 +80,13 @@ export function useI18n() {
 
   function colorLabel(code: string, name: string): string {
     const hasCJK = /[\u4e00-\u9fff]/.test(name)
-    const isCN = locale.value === 'zh-hans' || locale.value === 'zh-hant'
-    if (hasCJK && !isCN) {
+    const isHans = locale.value === 'zh-hans'
+    const isHant = locale.value === 'zh-hant'
+    if (isHant) {
+      const tcn = t.value.colorNames[name]
+      return tcn ? `${code} ${tcn}` : `${code} ${name}`
+    }
+    if (hasCJK && !isHans) {
       const translated = t.value.colorNames[name]
       if (translated && translated !== name) return `${code} ${translated}`
       return code
