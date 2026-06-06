@@ -769,7 +769,7 @@ export default defineComponent({
       const p = store.beadPattern
       if (!d || !p) return
 
-      const cellSize = 128
+      const cellSize = 256
       const pad = 48
       const footerH = 180
 
@@ -812,11 +812,11 @@ export default defineComponent({
       const p = store.beadPattern
       if (!d || !p) return
 
-      const scale = Math.max(3, Math.ceil(1200 / d.width))
+      const scale = Math.max(6, Math.ceil(2400 / d.width))
       const patternW = d.width * scale
       const patternH = d.height * scale
-      const pad = 32
-      const footerH = 150
+      const pad = 64
+      const footerH = 300
 
       const { sorted } = getUsedColors(p)
 
@@ -861,11 +861,11 @@ export default defineComponent({
       const p = store.beadPattern
       if (!d || !p) return
 
-      const scale = Math.max(3, Math.ceil(1200 / d.width))
+      const scale = Math.max(6, Math.ceil(2400 / d.width))
       const patternW = d.width * scale
       const patternH = d.height * scale
-      const pad = 32
-      const footerH = 150
+      const pad = 64
+      const footerH = 300
 
       const { sorted } = getUsedColors(p)
 
