@@ -6,6 +6,7 @@ export const nabbi: BrandDef = {
   name: 'Nabbi',
   shortName: 'NAB',
   prefix: 'N',
+  paletteSizes: [24],
   colors: [
     c('N01', 'Black', '#3A3D41', 'solid', 'black'),
     c('N02', 'Dark Brown', '#50443B', 'solid', 'brown'),

@@ -6,6 +6,7 @@ export const artkal: BrandDef = {
   name: 'Artkal S (5mm)',
   shortName: 'ART',
   prefix: 'S',
+  paletteSizes: [48, 72, 88, 120],
   colors: [
     c('S01', 'White', '#FFFFFF', 'solid', 'white'),
     c('S77', 'Ghost White', '#EFEFEF', 'solid', 'white'),

@@ -6,6 +6,7 @@ export const perler: BrandDef = {
   name: 'Perler',
   shortName: 'PER',
   prefix: 'P',
+  paletteSizes: [24, 48],
   colors: [
     c('P01', 'White', '#F1F1F1', 'solid', 'white'),
     c('P02', 'Cream', '#E0DEA9', 'solid', 'yellow'),

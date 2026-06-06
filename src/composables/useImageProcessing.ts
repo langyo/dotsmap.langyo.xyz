@@ -1,4 +1,5 @@
 import { useAppStore } from '@/stores/app'
+import { nextTick } from 'vue'
 import {
   removeBackground,
   resizeImage,
@@ -34,12 +35,16 @@ export function useImageProcessing() {
       const ctx = canvas.getContext('2d')
       if (!ctx) throw new Error('Canvas not supported')
       ctx.drawImage(img, 0, 0)
+      store.isRestoring = true
       store.setSourceImage(img, canvas.toDataURL())
       applyPreprocessing()
+      await nextTick()
+      store.isRestoring = false
     } catch (err) {
       handleError(err, '图片加载失败')
     } finally {
       store.isProcessing = false
+      store.isRestoring = false
     }
   }
 
@@ -52,7 +57,7 @@ export function useImageProcessing() {
       let imageData = imageToImageData(store.sourceImage)
       imageData = resizeImage(imageData, 512)
 
-      if (store.preprocessMode === 'remove-bg') {
+      if (store.preprocessMode === 'remove-bg' && imageData.width > 1 && imageData.height > 1) {
         imageData = removeBackground(imageData, store.bgThreshold)
       }
 

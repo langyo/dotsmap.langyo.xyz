@@ -1,4 +1,4 @@
-import { defineComponent, ref, computed, watch } from 'vue'
+import { defineComponent, ref, computed, watch, onUnmounted } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { useImageProcessing } from '@/composables/useImageProcessing'
 import { categoryLabel, type BeadCategory } from '@/data/perlerColors'
@@ -10,9 +10,13 @@ export default defineComponent({
     const { applyPreprocessing } = useImageProcessing()
     const selectedCategory = ref<BeadCategory | null>(null)
 
+    let ppTimer: ReturnType<typeof setTimeout> | null = null
     watch(() => [store.preprocessMode, store.bgThreshold] as const, () => {
-      if (store.sourceImage) applyPreprocessing()
+      if (!store.sourceImage || store.isRestoring) return
+      if (ppTimer) clearTimeout(ppTimer)
+      ppTimer = setTimeout(() => applyPreprocessing(), 80)
     })
+    onUnmounted(() => { if (ppTimer) clearTimeout(ppTimer) })
 
     const categories = computed(() => {
       const cats = new Map<BeadCategory, number>()
@@ -90,10 +94,16 @@ export default defineComponent({
           {filteredPalette.value.map((col) => (
             <div
               key={col.code}
-              class="w-4 h-4 rounded-full border border-black/10 flex-shrink-0 transition-transform hover:scale-150 hover:z-10"
-              style={{ backgroundColor: col.hex }}
+              class="flex flex-col items-center transition-transform hover:scale-125 hover:z-10 cursor-default"
+              style={{ width: '28px' }}
               title={`${col.code} ${col.name} (${col.hex})`}
-            />
+            >
+              <div
+                class="w-5 h-5 rounded-full border border-black/10 flex-shrink-0"
+                style={{ backgroundColor: col.hex }}
+              />
+              <span class="text-[8px] leading-tight font-mono mt-0.5 truncate w-full text-center select-none" style={{ color: 'var(--text-secondary)' }}>{col.code}</span>
+            </div>
           ))}
         </div>
 

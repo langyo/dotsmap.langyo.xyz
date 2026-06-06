@@ -6,6 +6,7 @@ export const artkalc: BrandDef = {
   name: 'Artkal C (2.6mm)',
   shortName: 'ART-C',
   prefix: 'C',
+  paletteSizes: [48, 72, 88, 120],
   colors: [
     c('C01', 'White', '#FFFFFF', 'solid', 'white'),
     c('C77', 'Ghost White', '#EFEFEF', 'solid', 'white'),

@@ -98,14 +98,12 @@ function selectDiverse(colors: BeadColor[], count: number): BeadColor[] {
 
 export function buildPalettes(brand: BrandDef): PaletteSet[] {
   const max = brand.colors.length
-  return [
-    { label: '24色', count: 24, colors: selectDiverse(brand.colors, 24) },
-    { label: '36色', count: 36, colors: selectDiverse(brand.colors, 36) },
-    { label: '48色', count: 48, colors: selectDiverse(brand.colors, 48) },
-    { label: '72色', count: 72, colors: selectDiverse(brand.colors, Math.min(72, max)) },
-    { label: '144色', count: 144, colors: selectDiverse(brand.colors, Math.min(144, max)) },
-    { label: '全部', count: max, colors: [...brand.colors] },
-  ].filter((p) => p.colors.length >= Math.min(p.count, 24))
+  const sizes = brand.paletteSizes ?? [24, 36, 48, 72, 144]
+  const palettes: PaletteSet[] = sizes
+    .filter((s) => s < max)
+    .map((s) => ({ label: `${s}色`, count: s, colors: selectDiverse(brand.colors, s) }))
+  palettes.push({ label: '全部', count: max, colors: [...brand.colors] })
+  return palettes.filter((p) => p.colors.length >= Math.min(p.count, 24))
 }
 
 export function getPaletteByCount(brand: BrandDef, count: number): BeadColor[] {
@@ -122,4 +120,12 @@ export function groupByFamily(colors: BeadColor[]): Map<ColorFamily, BeadColor[]
     map.set(col.family, arr)
   }
   return map
+}
+
+export function contrastTextColor(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16) / 255
+  const g = parseInt(hex.slice(3, 5), 16) / 255
+  const b = parseInt(hex.slice(5, 7), 16) / 255
+  const lum = 0.299 * r + 0.587 * g + 0.114 * b
+  return lum > 0.45 ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.9)'
 }

@@ -6,6 +6,7 @@ export const pyssla: BrandDef = {
   name: 'IKEA Pyssla',
   shortName: 'IKEA',
   prefix: 'PY',
+  paletteSizes: [],
   colors: [
     c('PY01', 'White', '#F4F4F0', 'solid', 'white'),
     c('PY02', 'Yellow', '#F3D700', 'solid', 'yellow'),

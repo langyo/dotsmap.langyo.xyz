@@ -21,7 +21,7 @@ export default defineComponent({
     const vpRef = ref<HTMLDivElement>()
     const mmRef = ref<HTMLCanvasElement>()
     const showGrid = ref(true)
-    const showCodes = ref(false)
+    const showCodes = ref(true)
     const zoom = ref(1)
     const panX = ref(0)
     const panY = ref(0)
@@ -108,6 +108,16 @@ export default defineComponent({
       panY.value = (vpH.value - vH.value) / 2
     }
 
+    function snapToZoomLevel(target: number): number {
+      let best = ZOOM_LEVELS[0]
+      let bestDiff = Math.abs(target - best)
+      for (const z of ZOOM_LEVELS) {
+        const diff = Math.abs(target - z)
+        if (diff < bestDiff) { bestDiff = diff; best = z }
+      }
+      return best
+    }
+
     function fitToViewport() {
       const d = imgData.value
       if (!d) return
@@ -115,7 +125,8 @@ export default defineComponent({
       if (vpW.value > 0 && vpH.value > 0) {
         const fitW = vpW.value / d.width
         const fitH = vpH.value / d.height
-        zoom.value = Math.max(baseZoom, Math.floor(Math.min(fitW, fitH)))
+        const raw = Math.max(baseZoom, Math.floor(Math.min(fitW, fitH)))
+        zoom.value = snapToZoomLevel(raw)
       } else {
         zoom.value = baseZoom
       }
@@ -190,6 +201,9 @@ export default defineComponent({
         if (showCodes.value && p && zoom.value >= 6) {
           drawCodes(ctx, w, h, p)
         }
+        if (hoverCell.value && p) {
+          drawCrosshair(ctx, w, h, p.gridWidth, p.gridHeight, hoverCell.value.x, hoverCell.value.y)
+        }
       } else if (url) {
         const img = new Image()
         img.onload = () => {
@@ -209,20 +223,47 @@ export default defineComponent({
     function drawGrid(ctx: CanvasRenderingContext2D, cw: number, ch: number, gw: number, gh: number) {
       const cW = cw / gw
       const cH = ch / gh
-      ctx.strokeStyle = 'rgba(128,128,128,0.15)'
+      ctx.strokeStyle = 'rgba(128,128,128,0.08)'
       ctx.lineWidth = 0.5
       ctx.beginPath()
       for (let x = 0; x <= gw; x++) { ctx.moveTo(Math.round(x * cW) + 0.5, 0); ctx.lineTo(Math.round(x * cW) + 0.5, ch) }
       for (let y = 0; y <= gh; y++) { ctx.moveTo(0, Math.round(y * cH) + 0.5); ctx.lineTo(cw, Math.round(y * cH) + 0.5) }
       ctx.stroke()
-      ctx.strokeStyle = 'rgba(128,128,128,0.35)'
+      ctx.strokeStyle = 'rgba(128,128,128,0.3)'
       ctx.lineWidth = 1
       ctx.beginPath()
-      for (let x = 0; x <= gw; x += 10) { ctx.moveTo(Math.round(x * cW) + 0.5, 0); ctx.lineTo(Math.round(x * cW) + 0.5, ch) }
-      for (let y = 0; y <= gh; y += 10) { ctx.moveTo(0, Math.round(y * cH) + 0.5); ctx.lineTo(cw, Math.round(y * cH) + 0.5) }
+      for (let x = 0; x <= gw; x += 5) { ctx.moveTo(Math.round(x * cW) + 0.5, 0); ctx.lineTo(Math.round(x * cW) + 0.5, ch) }
+      for (let y = 0; y <= gh; y += 5) { ctx.moveTo(0, Math.round(y * cH) + 0.5); ctx.lineTo(cw, Math.round(y * cH) + 0.5) }
       ctx.stroke()
     }
 
+    function drawCrosshair(ctx: CanvasRenderingContext2D, cw: number, ch: number, gw: number, gh: number, gx: number, gy: number) {
+      const cW = cw / gw
+      const cH = ch / gh
+      const cellLeft = gx * cW
+      const cellTop = gy * cH
+      const cellRight = (gx + 1) * cW
+      const cellBottom = (gy + 1) * cH
+      const cellCenterX = cellLeft + cW / 2
+      const cellCenterY = cellTop + cH / 2
+      const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim()
+      const color = primaryColor ? `rgb(${primaryColor})` : '#d63384'
+      ctx.save()
+      ctx.strokeStyle = color
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.moveTo(cellCenterX, 0)
+      ctx.lineTo(cellCenterX, cellTop)
+      ctx.moveTo(cellCenterX, cellBottom)
+      ctx.lineTo(cellCenterX, ch)
+      ctx.moveTo(0, cellCenterY)
+      ctx.lineTo(cellLeft, cellCenterY)
+      ctx.moveTo(cellRight, cellCenterY)
+      ctx.lineTo(cw, cellCenterY)
+      ctx.stroke()
+      ctx.strokeRect(cellLeft + 0.75, cellTop + 0.75, cW - 1.5, cH - 1.5)
+      ctx.restore()
+    }
     function applyHighlight(d: ImageData, p: BeadPattern): ImageData {
       const out = new ImageData(new Uint8ClampedArray(d.data), d.width, d.height)
       const highlightSet = new Set<string>()
@@ -255,7 +296,7 @@ export default defineComponent({
 
       for (const c of p.cells) {
         const lum = hexLuminance(c.hex)
-        ctx.fillStyle = lum > 0.4 ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.9)'
+        ctx.fillStyle = lum > 0.45 ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.9)'
         ctx.fillText(c.colorCode, (c.x + 0.5) * cW, (c.y + 0.5) * cH)
       }
     }
@@ -284,8 +325,8 @@ export default defineComponent({
       if (!ctx) return
       if (mmBg) ctx.drawImage(mmBg, 0, 0)
       const s = mmScale.value
-      const rw = Math.max(10, (vpW.value / zoom.value) * s)
-      const rh = Math.max(10, (vpH.value / zoom.value) * s)
+      const rw = Math.min(mmW.value, Math.max(10, (vpW.value / zoom.value) * s))
+      const rh = Math.min(mmH.value, Math.max(10, (vpH.value / zoom.value) * s))
       const rx = Math.min(Math.max(0, (-panX.value / zoom.value) * s), mmW.value - rw)
       const ry = Math.min(Math.max(0, (-panY.value / zoom.value) * s), mmH.value - rh)
       ctx.fillStyle = 'rgba(255,107,157,0.15)'
@@ -327,8 +368,8 @@ export default defineComponent({
     }
 
     function onWheel(e: WheelEvent) {
-      e.preventDefault()
       if (!imgData.value) return
+      e.preventDefault()
       const rect = vpRef.value?.getBoundingClientRect()
       if (!rect) return
       doZoom(e.deltaY < 0 ? 1 : -1, e.clientX - rect.left, e.clientY - rect.top)
@@ -432,6 +473,7 @@ export default defineComponent({
 
     function onTouchStart(e: TouchEvent) {
       if (!vpRef.value) return
+      if (!store.beadPattern) return
       e.preventDefault()
 
       const rect = vpRef.value.getBoundingClientRect()
@@ -467,9 +509,9 @@ export default defineComponent({
     }
 
     function onTouchMove(e: TouchEvent) {
-      e.preventDefault()
       const ts = touchState.value
       if (ts.type === 'none') return
+      e.preventDefault()
       const rect = vpRef.value?.getBoundingClientRect()
       if (!rect) return
 
@@ -534,6 +576,7 @@ export default defineComponent({
     }
 
     function onTouchEnd(e: TouchEvent) {
+      if (touchState.value.type === 'none') return
       e.preventDefault()
       if (e.touches.length === 0) {
         touchState.value = { type: 'none', startDist: 0, startZoom: 1, startMidX: 0, startMidY: 0, startPanX: 0, startPanY: 0 }
@@ -596,7 +639,7 @@ export default defineComponent({
     function drawExportGrid(ctx: CanvasRenderingContext2D, w: number, h: number, gw: number, gh: number) {
       const cW = w / gw
       const cH = h / gh
-      ctx.strokeStyle = 'rgba(128,128,128,0.18)'
+      ctx.strokeStyle = 'rgba(128,128,128,0.12)'
       ctx.lineWidth = 0.5
       ctx.beginPath()
       for (let x = 0; x <= gw; x++) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, h) }
@@ -605,8 +648,8 @@ export default defineComponent({
       ctx.strokeStyle = 'rgba(128,128,128,0.4)'
       ctx.lineWidth = 1
       ctx.beginPath()
-      for (let x = 0; x <= gw; x += 10) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, h) }
-      for (let y = 0; y <= gh; y += 10) { ctx.moveTo(0, y * cH); ctx.lineTo(w, y * cH) }
+      for (let x = 0; x <= gw; x += 5) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, h) }
+      for (let y = 0; y <= gh; y += 5) { ctx.moveTo(0, y * cH); ctx.lineTo(w, y * cH) }
       ctx.stroke()
     }
 
@@ -618,7 +661,7 @@ export default defineComponent({
       ctx.textBaseline = 'middle'
       for (const c of cells) {
         const lum = hexLuminance(c.hex)
-        ctx.fillStyle = lum > 0.4 ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.9)'
+        ctx.fillStyle = lum > 0.45 ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.9)'
         ctx.fillText(c.colorCode, (c.x + 0.5) * cellSize, (c.y + 0.5) * cellSize)
       }
     }
@@ -667,12 +710,12 @@ export default defineComponent({
       )
       ctx.textBaseline = 'middle'
 
+      ctx.font = `${subSize}px sans-serif`
+      const w1 = ctx.measureText('该图纸由').width
+      const w3 = ctx.measureText(`${store.currentBrand.name} · ${store.selectedPaletteLabel} · ${p.gridWidth}×${p.gridHeight} · 使用 ${sorted.length} 种颜色`).width
       ctx.font = `bold ${titleSize}px sans-serif`
-      const titleW = Math.max(
-        ctx.measureText('该图纸由').width,
-        ctx.measureText('DotsMap 创作').width,
-        ctx.measureText(`${store.currentBrand.name} · ${store.selectedPaletteLabel} · ${p.gridWidth}×${p.gridHeight} · 使用 ${sorted.length} 种颜色`).width,
-      )
+      const w2 = ctx.measureText('DotsMap 创作').width
+      const titleW = Math.max(w1, w2, w3)
 
       try {
         const qrCanvas = await generateQRCanvas(qrSize)
@@ -725,7 +768,7 @@ export default defineComponent({
             const lg = parseInt(sorted[i].hex.slice(3, 5), 16) / 255
             const lb = parseInt(sorted[i].hex.slice(5, 7), 16) / 255
             const lum = 0.299 * lr + 0.587 * lg + 0.114 * lb
-            ctx.fillStyle = lum > 0.55 ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.95)'
+            ctx.fillStyle = lum > 0.45 ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.9)'
             ctx.font = `bold ${fontSize}px monospace`
             ctx.textAlign = 'center'
             ctx.textBaseline = 'middle'
@@ -769,9 +812,10 @@ export default defineComponent({
       const p = store.beadPattern
       if (!d || !p) return
 
-      const cellSize = 256
+      const maxDim = 16000
       const pad = 48
       const footerH = 180
+      const cellSize = Math.min(256, Math.floor((maxDim - pad * 2 - footerH) / Math.max(p.gridWidth, p.gridHeight)))
 
       const patternW = p.gridWidth * cellSize
       const patternH = p.gridHeight * cellSize
@@ -812,11 +856,15 @@ export default defineComponent({
       const p = store.beadPattern
       if (!d || !p) return
 
-      const scale = Math.max(6, Math.ceil(2400 / d.width))
-      const patternW = d.width * scale
-      const patternH = d.height * scale
       const pad = 64
       const footerH = 300
+      const maxShareDim = 16000
+      const scale = Math.min(
+        Math.max(6, Math.ceil(2400 / d.width)),
+        Math.floor((maxShareDim - pad * 2 - footerH) / Math.max(d.width, d.height)),
+      )
+      const patternW = d.width * scale
+      const patternH = d.height * scale
 
       const { sorted } = getUsedColors(p)
 
@@ -861,11 +909,15 @@ export default defineComponent({
       const p = store.beadPattern
       if (!d || !p) return
 
-      const scale = Math.max(6, Math.ceil(2400 / d.width))
-      const patternW = d.width * scale
-      const patternH = d.height * scale
       const pad = 64
       const footerH = 300
+      const maxShareDim = 16000
+      const scale = Math.min(
+        Math.max(6, Math.ceil(2400 / d.width)),
+        Math.floor((maxShareDim - pad * 2 - footerH) / Math.max(d.width, d.height)),
+      )
+      const patternW = d.width * scale
+      const patternH = d.height * scale
 
       const { sorted } = getUsedColors(p)
 
@@ -939,9 +991,10 @@ export default defineComponent({
       if (!p) return
       const grid: string[][] = Array.from({ length: p.gridHeight }, () => Array(p.gridWidth).fill(''))
       for (const c of p.cells) {
-        if (c.y < grid.length && c.x < (grid[c.y]?.length ?? 0)) grid[c.y][c.x] = c.colorName
+        if (c.y < grid.length && c.x < (grid[c.y]?.length ?? 0)) grid[c.y][c.x] = `${c.colorCode} ${c.colorName}`
       }
-      const blob = new Blob([grid.map(r => r.join(',')).join('\n')], { type: 'text/csv' })
+      const csvEscape = (v: string) => `"${v.replace(/"/g, '""')}"`
+      const blob = new Blob([grid.map(r => r.map(csvEscape).join(',')).join('\n')], { type: 'text/csv' })
       downloadBlob(blob, 'dotsmap-pattern.csv')
     }
 
@@ -953,6 +1006,10 @@ export default defineComponent({
         drawMinimap()
       }),
     )
+
+    watch(hoverCell, () => {
+      nextTick(() => drawPattern())
+    })
 
     watch(() => store.beadPattern, (p) => {
       if (p) buildCellIndex()
@@ -1091,6 +1148,15 @@ export default defineComponent({
                   <canvas ref={mmRef} width={mmW.value} height={mmH.value} style={{ display: 'block' }} />
                 </div>
               )}
+
+              {hoverCell.value && (
+                <div class="absolute bottom-1 left-1 flex items-center gap-1.5 text-xs text-text-secondary bg-surface/80 backdrop-blur-sm rounded-full px-2 py-1 pointer-events-none z-10">
+                  <div class="w-3 h-3 rounded-full border border-black/10"
+                    style={{ backgroundColor: store.selectedPalette.find(c => c.code === hoverCell.value!.code)?.hex ?? '#888' }} />
+                  <span class="font-mono">({hoverCell.value.x}, {hoverCell.value.y})</span>
+                  <span>{hoverCell.value.name}</span>
+                </div>
+              )}
             </>
           ) : (
             <div
@@ -1107,15 +1173,6 @@ export default defineComponent({
             </div>
           )}
         </div>
-
-        {hoverCell.value && (
-          <div class="flex items-center gap-2 text-xs text-text-secondary mt-1">
-            <div class="w-3 h-3 rounded-full border border-black/10"
-              style={{ backgroundColor: store.selectedPalette.find(c => c.code === hoverCell.value!.code)?.hex ?? '#888' }} />
-            <span class="font-mono">({hoverCell.value.x}, {hoverCell.value.y})</span>
-            <span>{hoverCell.value.name}</span>
-          </div>
-        )}
 
         {store.error && (
           <div class="text-xs text-error bg-error/10 rounded-2xl p-2">{store.error}</div>
@@ -1136,7 +1193,7 @@ export default defineComponent({
                 <div class="export-option-icon"><Maximize size={18} /></div>
                 <div class="export-option-text">
                   <h4>高清图纸 (适合打印)</h4>
-                  <p>每颗拼豆放大到 64 像素，带网格线和色号标注，打印出来照着拼非常方便</p>
+                  <p>每颗拼豆放大到 256 像素，带网格线和色号标注，打印出来照着拼非常方便</p>
                 </div>
               </div>
               <div class="export-option" onClick={downloadShareImage}>

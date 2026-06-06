@@ -1,7 +1,8 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 
 const isDark = ref(false)
-
+let initialized = false
+let mediaHandler: ((e: MediaQueryListEvent) => void) | null = null
 let mediaQuery: MediaQueryList | undefined
 
 function applyTheme() {
@@ -25,19 +26,27 @@ function loadPreference() {
 
 export function useDarkMode() {
   onMounted(() => {
-    loadPreference()
-    mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    mediaQuery.addEventListener('change', (e) => {
-      const stored = localStorage.getItem('dotsmap-dark')
-      if (stored === null) {
-        isDark.value = e.matches
-        applyTheme()
+    if (!initialized) {
+      initialized = true
+      loadPreference()
+      mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+      mediaHandler = (e: MediaQueryListEvent) => {
+        const stored = localStorage.getItem('dotsmap-dark')
+        if (stored === null) {
+          isDark.value = e.matches
+          applyTheme()
+        }
       }
-    })
+      mediaQuery.addEventListener('change', mediaHandler)
+    }
   })
 
   onUnmounted(() => {
-    mediaQuery?.removeEventListener('change', () => {})
+    if (mediaHandler && mediaQuery) {
+      mediaQuery.removeEventListener('change', mediaHandler)
+      mediaHandler = null
+      initialized = false
+    }
   })
 
   function toggle() {

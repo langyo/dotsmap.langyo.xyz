@@ -45,17 +45,22 @@ export const useAppStore = defineStore('app', () => {
     sourceDataURL.value = dataURL
     const w = Math.max(1, img.width)
     gridWidth.value = Math.min(50, w)
-    gridHeight.value = Math.round(img.height * (gridWidth.value / w))
+    gridHeight.value = Math.max(1, Math.min(200, Math.round(img.height * (gridWidth.value / w))))
     resetGeneratedState()
   }
 
-  function resetGeneratedState() {
+  function resetBeadState() {
     beadPattern.value = null
     beadedImageData.value = null
     beadedDataURL.value = null
+    colorUsage.value = {}
+    highlightCode.value = null
+  }
+
+  function resetGeneratedState() {
+    resetBeadState()
     processedImageData.value = null
     processedDataURL.value = null
-    colorUsage.value = {}
   }
 
   function setBrand(brand: BrandDef) {
@@ -87,10 +92,12 @@ export const useAppStore = defineStore('app', () => {
   }
 
   function setPalette(count: number) {
-    const colors = getPaletteByCount(currentBrand.value, count)
+    const found = paletteOptions.value.find((p) => p.count === count)
+    const colors = found ? found.colors : getPaletteByCount(currentBrand.value, count)
     selectedPalette.value = colors
     selectedPaletteCount.value = count
     selectedPaletteLabel.value = count === currentBrand.value.colors.length ? '全部' : `${count}色`
+    resetBeadState()
   }
 
   function setPreprocessMode(mode: PreprocessMode) {
@@ -100,6 +107,7 @@ export const useAppStore = defineStore('app', () => {
   function setGridSize(w: number, h: number) {
     gridWidth.value = Math.max(1, Math.min(200, w))
     gridHeight.value = Math.max(1, Math.min(200, h))
+    highlightCode.value = null
   }
 
   function resetPreprocess() {
@@ -131,9 +139,10 @@ export const useAppStore = defineStore('app', () => {
     selectedPalette.value = colors
     selectedPaletteCount.value = data.paletteCount
     selectedPaletteLabel.value = data.paletteCount === brand.colors.length ? '全部' : `${data.paletteCount}色`
-    gridWidth.value = data.gridWidth
-    gridHeight.value = data.gridHeight
-    preprocessMode.value = data.preprocessMode as PreprocessMode
+    gridWidth.value = Math.max(1, Math.min(200, data.gridWidth))
+    gridHeight.value = Math.max(1, Math.min(200, data.gridHeight))
+    const validModes: PreprocessMode[] = ['none', 'remove-bg']
+    preprocessMode.value = validModes.includes(data.preprocessMode as PreprocessMode) ? data.preprocessMode as PreprocessMode : 'remove-bg'
     bgThreshold.value = data.bgThreshold
     sourceImage.value = img
     sourceDataURL.value = data.sourceDataURL
@@ -148,6 +157,8 @@ export const useAppStore = defineStore('app', () => {
     selectedPalette.value = fresh.mid.colors
     selectedPaletteLabel.value = fresh.mid.label
     selectedPaletteCount.value = fresh.mid.count
+    processedImageData.value = null
+    processedDataURL.value = null
     beadedImageData.value = null
     beadedDataURL.value = null
     beadPattern.value = null
@@ -157,6 +168,8 @@ export const useAppStore = defineStore('app', () => {
     bgThreshold.value = 2
     isProcessing.value = false
     colorUsage.value = {}
+    highlightCode.value = null
+    isRestoring.value = false
     error.value = null
   }
 

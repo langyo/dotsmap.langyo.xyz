@@ -6,6 +6,7 @@ export const hama: BrandDef = {
   name: 'Hama Midi',
   shortName: 'HAMA',
   prefix: 'H',
+  paletteSizes: [24, 48],
   colors: [
     c('H01', 'White', '#ECEDED', 'solid', 'white'),
     c('H02', 'Cream', '#F0E8B9', 'solid', 'yellow'),

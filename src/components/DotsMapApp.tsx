@@ -24,23 +24,33 @@ export default defineComponent({
     watch(
       () => [store.currentBrand.id, store.selectedPaletteCount, store.gridWidth, store.gridHeight] as const,
       () => {
-        if (store.sourceImage && !store.isRestoring) generatePattern()
+        if (store.sourceImage && !store.isRestoring) {
+          if (store.preprocessMode !== 'none' && !store.processedImageData) {
+            applyPreprocessing()
+          } else {
+            generatePattern()
+          }
+        }
       },
     )
 
-    watch(() => store.beadPattern, async (p) => {
+    let saveTimer: ReturnType<typeof setTimeout> | null = null
+    watch(() => store.beadPattern, (p) => {
+      if (saveTimer) { clearTimeout(saveTimer); saveTimer = null }
       if (p && store.sourceDataURL) {
-        try {
-          await saveState({
-            sourceDataURL: store.sourceDataURL,
-            brandId: store.currentBrand.id,
-            paletteCount: store.selectedPaletteCount,
-            gridWidth: store.gridWidth,
-            gridHeight: store.gridHeight,
-            preprocessMode: store.preprocessMode,
-            bgThreshold: store.bgThreshold,
-          })
-        } catch { /* ignore */ }
+        saveTimer = setTimeout(async () => {
+          try {
+            await saveState({
+              sourceDataURL: store.sourceDataURL!,
+              brandId: store.currentBrand.id,
+              paletteCount: store.selectedPaletteCount,
+              gridWidth: store.gridWidth,
+              gridHeight: store.gridHeight,
+              preprocessMode: store.preprocessMode,
+              bgThreshold: store.bgThreshold,
+            })
+          } catch { /* ignore */ }
+        }, 500)
       }
     })
 
@@ -141,8 +151,8 @@ export default defineComponent({
             </div>
             <div class="flex items-center gap-1.5">
               {hasSource && (
-                <button class="btn-icon" onClick={handleHeaderReset} title="重置">
-                  <RotateCcw size={16} />
+                <button class="btn btn-sm" onClick={handleHeaderReset}>
+                  <RotateCcw size={14} /> 重置
                 </button>
               )}
               <button class="btn-icon" onClick={() => showAbout.value = true} title="关于">

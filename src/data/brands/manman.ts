@@ -7,5 +7,6 @@ export const manman: BrandDef = {
   name: '漫漫',
   shortName: 'MM',
   prefix: '',
+  paletteSizes: [48, 72, 88, 120, 144, 176],
   colors: raw.map(d => c(d.code, d.name, d.hex, d.category as any, d.family as any)),
 }
