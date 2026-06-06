@@ -8,7 +8,7 @@ export default defineComponent({
   name: 'BeadLegend',
   setup() {
     const store = useAppStore()
-    const { t, tColor } = useI18n()
+    const { t, colorLabel } = useI18n()
 
     const legendItems = computed(() => {
       const usage = store.colorUsage
@@ -42,7 +42,7 @@ export default defineComponent({
           <div class="flex items-center gap-2 text-xs p-2 rounded-2xl bg-primary/10 text-primary">
             <div class="w-3 h-3 rounded-full border border-primary/30"
               style={{ backgroundColor: hc?.hex }} />
-            {t.value.onlyShowing}: {hc?.code} {tColor(hc?.code ?? '', hc?.name ?? '')}
+            {t.value.onlyShowing}: {colorLabel(hc?.code ?? '', hc?.name ?? '')}
           </div>
           )
         })()}
@@ -56,7 +56,7 @@ export default defineComponent({
                 key={col.code}
                 class={`legend-swatch ${active ? 'legend-swatch-active' : ''}`}
                 style={{ '--swatch-bg': col.hex, '--swatch-text': textColor } as any}
-                title={`${col.code} ${tColor(col.code, col.name)} (${store.colorUsage[col.code] ?? 0}${t.value.beadUnit})`}
+                title={`${colorLabel(col.code, col.name)} (${store.colorUsage[col.code] ?? 0}${t.value.beadUnit})`}
                 onClick={() => { store.highlightCode = active ? null : col.code }}
               >
                 <span class="legend-swatch-code" style={{ color: textColor }}>{col.code}</span>
@@ -79,7 +79,7 @@ export default defineComponent({
               >
                 <div class="w-3 h-3 rounded-full border border-black/10 flex-shrink-0"
                   style={{ backgroundColor: col.hex }} />
-                <span class="truncate flex-1 text-left">{col.code} {tColor(col.code, col.name)}</span>
+                <span class="truncate flex-1 text-left">{colorLabel(col.code, col.name)}</span>
                 <span class="text-text-secondary font-mono flex-shrink-0 tabular-nums ml-auto">{count}</span>
               </button>
             )
