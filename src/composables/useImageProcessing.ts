@@ -1,7 +1,6 @@
 import { useAppStore } from '@/stores/app'
 import {
   removeBackground,
-  magicWandSelect,
   resizeImage,
   loadImage,
   imageToImageData,
@@ -36,7 +35,7 @@ export function useImageProcessing() {
       if (!ctx) throw new Error('Canvas not supported')
       ctx.drawImage(img, 0, 0)
       store.setSourceImage(img, canvas.toDataURL())
-      generatePattern()
+      applyPreprocessing()
     } catch (err) {
       handleError(err, '图片加载失败')
     } finally {
@@ -55,8 +54,6 @@ export function useImageProcessing() {
 
       if (store.preprocessMode === 'remove-bg') {
         imageData = removeBackground(imageData, store.bgThreshold)
-      } else if (store.preprocessMode === 'magic-wand') {
-        imageData = magicWandSelect(imageData, store.magicX, store.magicY, store.magicTolerance)
       }
 
       store.setProcessedImage(imageData, dataURLFromImageData(imageData))

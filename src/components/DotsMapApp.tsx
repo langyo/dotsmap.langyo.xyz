@@ -39,9 +39,6 @@ export default defineComponent({
             gridHeight: store.gridHeight,
             preprocessMode: store.preprocessMode,
             bgThreshold: store.bgThreshold,
-            magicTolerance: store.magicTolerance,
-            magicX: store.magicX,
-            magicY: store.magicY,
           })
         } catch { /* ignore */ }
       }
@@ -73,7 +70,7 @@ export default defineComponent({
         store.restoreFromPersisted(saved, img)
         await nextTick()
         store.isRestoring = false
-        if (saved.preprocessMode !== 'none') {
+        if (saved.preprocessMode === 'remove-bg') {
           applyPreprocessing()
         } else {
           generatePattern()

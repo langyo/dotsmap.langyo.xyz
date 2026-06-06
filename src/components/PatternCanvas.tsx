@@ -16,7 +16,7 @@ export default defineComponent({
   },
   setup(props) {
     const store = useAppStore()
-    const { handleFileUpload, applyPreprocessing, resetAll: resetAllAction } = useImageProcessing()
+    const { handleFileUpload, resetAll: resetAllAction } = useImageProcessing()
     const canvasRef = ref<HTMLCanvasElement>()
     const vpRef = ref<HTMLDivElement>()
     const mmRef = ref<HTMLCanvasElement>()
@@ -35,6 +35,15 @@ export default defineComponent({
     const fileInput = ref<HTMLInputElement>()
     const isDragging = ref(false)
     const dragCounter = ref(0)
+    const touchState = ref<{
+      type: 'none' | 'pan' | 'pinch'
+      startDist: number
+      startZoom: number
+      startMidX: number
+      startMidY: number
+      startPanX: number
+      startPanY: number
+    }>({ type: 'none', startDist: 0, startZoom: 1, startMidX: 0, startMidY: 0, startPanX: 0, startPanY: 0 })
     let resizeObs: ResizeObserver | null = null
     let mmBg: HTMLCanvasElement | null = null
 
@@ -317,24 +326,6 @@ export default defineComponent({
       if (dragCounter.value <= 0) { dragCounter.value = 0; isDragging.value = false }
     }
 
-    function handleMagicWandClick(e: MouseEvent) {
-      if (store.preprocessMode !== 'magic-wand' || store.beadPattern || !store.sourceImage) return
-      if (!canvasRef.value || !vpRef.value) return
-      const rect = vpRef.value.getBoundingClientRect()
-      const canvas = canvasRef.value
-      const canvasX = e.clientX - rect.left - panX.value
-      const canvasY = e.clientY - rect.top - panY.value
-      if (canvasX < 0 || canvasY < 0 || canvasX >= canvas.width || canvasY >= canvas.height) return
-      const sourceW = store.sourceImage.width
-      const sourceH = store.sourceImage.height
-      const ratio = Math.min(1, 512 / sourceW, 512 / sourceH)
-      const resizedW = Math.round(sourceW * ratio)
-      const resizedH = Math.round(sourceH * ratio)
-      store.magicX = Math.floor(Math.max(0, Math.min(resizedW - 1, canvasX * resizedW / canvas.width)))
-      store.magicY = Math.floor(Math.max(0, Math.min(resizedH - 1, canvasY * resizedH / canvas.height)))
-      applyPreprocessing()
-    }
-
     function onWheel(e: WheelEvent) {
       e.preventDefault()
       if (!imgData.value) return
@@ -345,11 +336,6 @@ export default defineComponent({
 
     function onVpMouseDown(e: MouseEvent) {
       if (!vpRef.value) return
-      if (store.preprocessMode === 'magic-wand' && !store.beadPattern) {
-        handleMagicWandClick(e)
-        e.preventDefault()
-        return
-      }
       const rect = vpRef.value.getBoundingClientRect()
       const mx = e.clientX - rect.left
       const my = e.clientY - rect.top
@@ -442,6 +428,129 @@ export default defineComponent({
       isPanning.value = false
       window.removeEventListener('mousemove', onWinMove)
       window.removeEventListener('mouseup', onWinUp)
+    }
+
+    function onTouchStart(e: TouchEvent) {
+      if (!vpRef.value) return
+      e.preventDefault()
+
+      const rect = vpRef.value.getBoundingClientRect()
+
+      if (e.touches.length === 1) {
+        const t = e.touches[0]
+        touchState.value = {
+          type: 'pan',
+          startDist: 0,
+          startZoom: zoom.value,
+          startMidX: t.clientX,
+          startMidY: t.clientY,
+          startPanX: panX.value,
+          startPanY: panY.value,
+        }
+        isPanning.value = true
+      } else if (e.touches.length === 2) {
+        const t1 = e.touches[0]
+        const t2 = e.touches[1]
+        const dx = t2.clientX - t1.clientX
+        const dy = t2.clientY - t1.clientY
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        touchState.value = {
+          type: 'pinch',
+          startDist: dist,
+          startZoom: zoom.value,
+          startMidX: (t1.clientX + t2.clientX) / 2,
+          startMidY: (t1.clientY + t2.clientY) / 2,
+          startPanX: panX.value,
+          startPanY: panY.value,
+        }
+      }
+    }
+
+    function onTouchMove(e: TouchEvent) {
+      e.preventDefault()
+      const ts = touchState.value
+      if (ts.type === 'none') return
+      const rect = vpRef.value?.getBoundingClientRect()
+      if (!rect) return
+
+      if (ts.type === 'pan' && e.touches.length === 2) {
+        const t1 = e.touches[0]
+        const t2 = e.touches[1]
+        const dx = t2.clientX - t1.clientX
+        const dy = t2.clientY - t1.clientY
+        touchState.value = {
+          type: 'pinch',
+          startDist: Math.sqrt(dx * dx + dy * dy),
+          startZoom: zoom.value,
+          startMidX: (t1.clientX + t2.clientX) / 2,
+          startMidY: (t1.clientY + t2.clientY) / 2,
+          startPanX: panX.value,
+          startPanY: panY.value,
+        }
+        return
+      }
+
+      if (ts.type === 'pan' && e.touches.length === 1) {
+        const t = e.touches[0]
+        panX.value = ts.startPanX + (t.clientX - ts.startMidX)
+        panY.value = ts.startPanY + (t.clientY - ts.startMidY)
+        clampPan()
+        drawMinimap()
+      } else if (ts.type === 'pinch' && e.touches.length === 2) {
+        const t1 = e.touches[0]
+        const t2 = e.touches[1]
+        const dx = t2.clientX - t1.clientX
+        const dy = t2.clientY - t1.clientY
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        const midX = (t1.clientX + t2.clientX) / 2
+        const midY = (t1.clientY + t2.clientY) / 2
+
+        if (ts.startDist > 0) {
+          const scale = dist / ts.startDist
+          const targetZoom = Math.round(ts.startZoom * scale)
+          let bestIdx = 0
+          let bestDiff = Infinity
+          for (let i = 0; i < ZOOM_LEVELS.length; i++) {
+            const diff = Math.abs(ZOOM_LEVELS[i] - targetZoom)
+            if (diff < bestDiff) { bestDiff = diff; bestIdx = i }
+          }
+          const newZoom = ZOOM_LEVELS[bestIdx]
+
+          const svx = ts.startMidX - rect.left
+          const svy = ts.startMidY - rect.top
+          const imgX = (svx - ts.startPanX) / ts.startZoom
+          const imgY = (svy - ts.startPanY) / ts.startZoom
+
+          const nvx = midX - rect.left
+          const nvy = midY - rect.top
+
+          zoom.value = newZoom
+          panX.value = nvx - imgX * newZoom
+          panY.value = nvy - imgY * newZoom
+          clampPan()
+          drawMinimap()
+        }
+      }
+    }
+
+    function onTouchEnd(e: TouchEvent) {
+      e.preventDefault()
+      if (e.touches.length === 0) {
+        touchState.value = { type: 'none', startDist: 0, startZoom: 1, startMidX: 0, startMidY: 0, startPanX: 0, startPanY: 0 }
+        isPanning.value = false
+      } else if (e.touches.length === 1 && touchState.value.type === 'pinch') {
+        const t = e.touches[0]
+        touchState.value = {
+          type: 'pan',
+          startDist: 0,
+          startZoom: zoom.value,
+          startMidX: t.clientX,
+          startMidY: t.clientY,
+          startPanX: panX.value,
+          startPanY: panY.value,
+        }
+        isPanning.value = true
+      }
     }
 
     function updateHover(e: MouseEvent) {
@@ -660,7 +769,7 @@ export default defineComponent({
       const p = store.beadPattern
       if (!d || !p) return
 
-      const cellSize = 128
+      const cellSize = 256
       const pad = 48
       const footerH = 180
 
@@ -687,8 +796,8 @@ export default defineComponent({
       src.height = d.height
       src.getContext('2d')!.putImageData(d, 0, 0)
       ctx.drawImage(src, 0, 0, patternW, patternH)
-      drawExportGrid(ctx, patternW, patternH, p.gridWidth, p.gridHeight)
-      drawExportCodes(ctx, p.gridWidth, p.gridHeight, cellSize, p.cells)
+      if (showGrid.value) drawExportGrid(ctx, patternW, patternH, p.gridWidth, p.gridHeight)
+      if (showCodes.value) drawExportCodes(ctx, p.gridWidth, p.gridHeight, cellSize, p.cells)
       ctx.restore()
 
       await drawFooter(ctx, 0, pad + patternH + pad, totalW, footerH, p, sorted)
@@ -703,11 +812,11 @@ export default defineComponent({
       const p = store.beadPattern
       if (!d || !p) return
 
-      const scale = Math.max(3, Math.ceil(1200 / d.width))
+      const scale = Math.max(6, Math.ceil(2400 / d.width))
       const patternW = d.width * scale
       const patternH = d.height * scale
-      const pad = 32
-      const footerH = 150
+      const pad = 64
+      const footerH = 300
 
       const { sorted } = getUsedColors(p)
 
@@ -731,19 +840,8 @@ export default defineComponent({
       src.getContext('2d')!.putImageData(d, 0, 0)
       ctx.drawImage(src, 0, 0, patternW, patternH)
 
-      const cW = patternW / p.gridWidth, cH = patternH / p.gridHeight
-      ctx.strokeStyle = 'rgba(128,128,128,0.15)'
-      ctx.lineWidth = 0.5
-      ctx.beginPath()
-      for (let x = 0; x <= p.gridWidth; x++) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, patternH) }
-      for (let y = 0; y <= p.gridHeight; y++) { ctx.moveTo(0, y * cH); ctx.lineTo(patternW, y * cH) }
-      ctx.stroke()
-      ctx.strokeStyle = 'rgba(128,128,128,0.35)'
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      for (let x = 0; x <= p.gridWidth; x += 10) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, patternH) }
-      for (let y = 0; y <= p.gridHeight; y += 10) { ctx.moveTo(0, y * cH); ctx.lineTo(patternW, y * cH) }
-      ctx.stroke()
+      if (showGrid.value) drawExportGrid(ctx, patternW, patternH, p.gridWidth, p.gridHeight)
+      if (showCodes.value) drawExportCodes(ctx, p.gridWidth, p.gridHeight, patternW / p.gridWidth, p.cells)
       ctx.restore()
 
       await drawFooter(ctx, 0, pad + patternH + pad, totalW, footerH, p, sorted)
@@ -763,11 +861,11 @@ export default defineComponent({
       const p = store.beadPattern
       if (!d || !p) return
 
-      const scale = Math.max(3, Math.ceil(1200 / d.width))
+      const scale = Math.max(6, Math.ceil(2400 / d.width))
       const patternW = d.width * scale
       const patternH = d.height * scale
-      const pad = 32
-      const footerH = 150
+      const pad = 64
+      const footerH = 300
 
       const { sorted } = getUsedColors(p)
 
@@ -791,19 +889,8 @@ export default defineComponent({
       src.getContext('2d')!.putImageData(d, 0, 0)
       ctx.drawImage(src, 0, 0, patternW, patternH)
 
-      const cW = patternW / p.gridWidth, cH = patternH / p.gridHeight
-      ctx.strokeStyle = 'rgba(128,128,128,0.15)'
-      ctx.lineWidth = 0.5
-      ctx.beginPath()
-      for (let x = 0; x <= p.gridWidth; x++) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, patternH) }
-      for (let y = 0; y <= p.gridHeight; y++) { ctx.moveTo(0, y * cH); ctx.lineTo(patternW, y * cH) }
-      ctx.stroke()
-      ctx.strokeStyle = 'rgba(128,128,128,0.35)'
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      for (let x = 0; x <= p.gridWidth; x += 10) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, patternH) }
-      for (let y = 0; y <= p.gridHeight; y += 10) { ctx.moveTo(0, y * cH); ctx.lineTo(patternW, y * cH) }
-      ctx.stroke()
+      if (showGrid.value) drawExportGrid(ctx, patternW, patternH, p.gridWidth, p.gridHeight)
+      if (showCodes.value) drawExportCodes(ctx, p.gridWidth, p.gridHeight, patternW / p.gridWidth, p.cells)
       ctx.restore()
 
       await drawFooter(ctx, 0, pad + patternH + pad, totalW, footerH, p, sorted)
@@ -820,7 +907,6 @@ export default defineComponent({
           })
           return
         } catch {
-          // user cancelled
         }
       }
 
@@ -908,7 +994,6 @@ export default defineComponent({
       if (!hasContent.value) return 'pointer'
       if (isPanning.value) return 'grabbing'
       if (dragType.value !== 'none') return 'default'
-      if (store.preprocessMode === 'magic-wand' && !store.beadPattern) return 'crosshair'
       if (imgData.value) return 'grab'
       return 'default'
     })
@@ -970,6 +1055,10 @@ export default defineComponent({
             onWheel={onWheel}
             onMousedown={onVpMouseDown}
             onMousemove={updateHover}
+            onTouchstart={onTouchStart}
+            onTouchmove={onTouchMove}
+            onTouchend={onTouchEnd}
+            onTouchcancel={onTouchEnd}
           >
           {hasContent.value ? (
             <>

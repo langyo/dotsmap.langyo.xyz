@@ -87,47 +87,6 @@ export function removeBackground(imageData: ImageData, threshold = 30): ImageDat
   return new ImageData(result, width, height)
 }
 
-export function magicWandSelect(
-  imageData: ImageData,
-  x: number,
-  y: number,
-  tolerance = 32,
-): ImageData {
-  const { data, width, height } = imageData
-  const result = new Uint8ClampedArray(data)
-
-  const startIdx = (y * width + x) * 4
-  const targetR = data[startIdx]
-  const targetG = data[startIdx + 1]
-  const targetB = data[startIdx + 2]
-
-  const visited = new Uint8Array(width * height)
-  const stack: Array<[number, number]> = [[x, y]]
-
-  while (stack.length > 0) {
-    const [cx, cy] = stack.pop()!
-    if (cx < 0 || cx >= width || cy < 0 || cy >= height) continue
-
-    const vi = cy * width + cx
-    if (visited[vi]) continue
-    visited[vi] = 1
-
-    const idx = vi * 4
-    const dr = data[idx] - targetR
-    const dg = data[idx + 1] - targetG
-    const db = data[idx + 2] - targetB
-
-    const distSq2 = dr * dr + dg * dg + db * db
-    if (distSq2 <= tolerance * tolerance) {
-      stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1])
-    } else {
-      result[idx + 3] = 0
-    }
-  }
-
-  return new ImageData(result, width, height)
-}
-
 export function resizeImage(imageData: ImageData, maxDimension: number): ImageData {
   const { width, height } = imageData
   if (width <= maxDimension && height <= maxDimension) return imageData
