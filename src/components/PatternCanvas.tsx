@@ -546,6 +546,7 @@ export default defineComponent({
     }
 
     function onTouchEnd(e: TouchEvent) {
+      if (touchState.value.type === 'none') return
       e.preventDefault()
       if (e.touches.length === 0) {
         touchState.value = { type: 'none', startDist: 0, startZoom: 1, startMidX: 0, startMidY: 0, startPanX: 0, startPanY: 0 }
