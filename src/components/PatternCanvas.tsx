@@ -19,7 +19,7 @@ export default defineComponent({
   setup(props) {
     const store = useAppStore()
     const { handleFileUpload, resetAll: resetAllAction } = useImageProcessing()
-    const { t } = useI18n()
+    const { t, tColor } = useI18n()
     const canvasRef = ref<HTMLCanvasElement>()
     const vpRef = ref<HTMLDivElement>()
     const mmRef = ref<HTMLCanvasElement>()
@@ -1316,7 +1316,7 @@ export default defineComponent({
                   <div class="w-3 h-3 rounded-full border border-black/10"
                     style={{ backgroundColor: store.selectedPalette.find(c => c.code === hoverCell.value!.code)?.hex ?? '#888' }} />
                   <span class="font-mono">({hoverCell.value.x}, {hoverCell.value.y})</span>
-                  <span>{hoverCell.value.name}</span>
+                  <span>{tColor(hoverCell.value.code, hoverCell.value.name)}</span>
                 </div>
               )}
             </>

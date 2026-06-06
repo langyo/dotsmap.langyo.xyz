@@ -78,7 +78,15 @@ export function useI18n() {
     locale.value = code
   }
 
+  function tColor(code: string, name: string): string {
+    const hasCJK = /[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/.test(name)
+    if (hasCJK && locale.value !== 'zh-hans' && locale.value !== 'zh-hant') {
+      return code
+    }
+    return name
+  }
+
   const locales = computed(() => localeOrder.map((code) => ({ code, meta: localeMeta[code] })))
 
-  return { locale, meta, t, categoryLabel, familyLabel, setLocale, locales }
+  return { locale, meta, t, categoryLabel, familyLabel, tColor, setLocale, locales }
 }
