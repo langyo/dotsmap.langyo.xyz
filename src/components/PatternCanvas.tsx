@@ -338,8 +338,8 @@ export default defineComponent({
     }
 
     function onWheel(e: WheelEvent) {
-      e.preventDefault()
       if (!imgData.value) return
+      e.preventDefault()
       const rect = vpRef.value?.getBoundingClientRect()
       if (!rect) return
       doZoom(e.deltaY < 0 ? 1 : -1, e.clientX - rect.left, e.clientY - rect.top)
