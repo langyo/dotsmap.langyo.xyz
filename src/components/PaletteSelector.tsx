@@ -1,4 +1,4 @@
-import { defineComponent, ref, computed, watch } from 'vue'
+import { defineComponent, ref, computed, watch, onUnmounted } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { useImageProcessing } from '@/composables/useImageProcessing'
 import { categoryLabel, type BeadCategory } from '@/data/perlerColors'
@@ -16,6 +16,7 @@ export default defineComponent({
       if (ppTimer) clearTimeout(ppTimer)
       ppTimer = setTimeout(() => applyPreprocessing(), 80)
     })
+    onUnmounted(() => { if (ppTimer) clearTimeout(ppTimer) })
 
     const categories = computed(() => {
       const cats = new Map<BeadCategory, number>()

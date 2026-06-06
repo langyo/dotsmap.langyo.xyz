@@ -479,9 +479,9 @@ export default defineComponent({
     }
 
     function onTouchMove(e: TouchEvent) {
-      e.preventDefault()
       const ts = touchState.value
       if (ts.type === 'none') return
+      e.preventDefault()
       const rect = vpRef.value?.getBoundingClientRect()
       if (!rect) return
 

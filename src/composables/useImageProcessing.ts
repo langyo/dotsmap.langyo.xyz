@@ -42,6 +42,7 @@ export function useImageProcessing() {
       handleError(err, '图片加载失败')
     } finally {
       store.isProcessing = false
+      store.isRestoring = false
     }
   }
 
