@@ -83,7 +83,7 @@ export function useI18n() {
     const isCN = locale.value === 'zh-hans' || locale.value === 'zh-hant'
     if (hasCJK && !isCN) {
       const translated = t.value.colorNames[name]
-      if (translated) return `${code} ${translated}`
+      if (translated && translated !== name) return `${code} ${translated}`
       return code
     }
     return `${code} ${name}`
