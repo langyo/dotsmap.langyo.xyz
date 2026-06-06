@@ -108,6 +108,16 @@ export default defineComponent({
       panY.value = (vpH.value - vH.value) / 2
     }
 
+    function snapToZoomLevel(target: number): number {
+      let best = ZOOM_LEVELS[0]
+      let bestDiff = Math.abs(target - best)
+      for (const z of ZOOM_LEVELS) {
+        const diff = Math.abs(target - z)
+        if (diff < bestDiff) { bestDiff = diff; best = z }
+      }
+      return best
+    }
+
     function fitToViewport() {
       const d = imgData.value
       if (!d) return
@@ -115,7 +125,8 @@ export default defineComponent({
       if (vpW.value > 0 && vpH.value > 0) {
         const fitW = vpW.value / d.width
         const fitH = vpH.value / d.height
-        zoom.value = Math.max(baseZoom, Math.floor(Math.min(fitW, fitH)))
+        const raw = Math.max(baseZoom, Math.floor(Math.min(fitW, fitH)))
+        zoom.value = snapToZoomLevel(raw)
       } else {
         zoom.value = baseZoom
       }

@@ -24,7 +24,13 @@ export default defineComponent({
     watch(
       () => [store.currentBrand.id, store.selectedPaletteCount, store.gridWidth, store.gridHeight] as const,
       () => {
-        if (store.sourceImage && !store.isRestoring) generatePattern()
+        if (store.sourceImage && !store.isRestoring) {
+          if (store.preprocessMode !== 'none' && !store.processedImageData) {
+            applyPreprocessing()
+          } else {
+            generatePattern()
+          }
+        }
       },
     )
 

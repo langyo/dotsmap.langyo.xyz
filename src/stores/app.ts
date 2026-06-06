@@ -45,7 +45,7 @@ export const useAppStore = defineStore('app', () => {
     sourceDataURL.value = dataURL
     const w = Math.max(1, img.width)
     gridWidth.value = Math.min(50, w)
-    gridHeight.value = Math.round(img.height * (gridWidth.value / w))
+    gridHeight.value = Math.max(1, Math.min(200, Math.round(img.height * (gridWidth.value / w))))
     resetGeneratedState()
   }
 
@@ -56,6 +56,7 @@ export const useAppStore = defineStore('app', () => {
     processedImageData.value = null
     processedDataURL.value = null
     colorUsage.value = {}
+    highlightCode.value = null
   }
 
   function setBrand(brand: BrandDef) {
@@ -87,10 +88,12 @@ export const useAppStore = defineStore('app', () => {
   }
 
   function setPalette(count: number) {
-    const colors = getPaletteByCount(currentBrand.value, count)
+    const found = paletteOptions.value.find((p) => p.count === count)
+    const colors = found ? found.colors : getPaletteByCount(currentBrand.value, count)
     selectedPalette.value = colors
     selectedPaletteCount.value = count
     selectedPaletteLabel.value = count === currentBrand.value.colors.length ? '全部' : `${count}色`
+    resetGeneratedState()
   }
 
   function setPreprocessMode(mode: PreprocessMode) {
