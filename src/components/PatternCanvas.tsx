@@ -1,6 +1,7 @@
 import { defineComponent, ref, watch, nextTick, computed, onMounted, onUnmounted } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { useImageProcessing } from '@/composables/useImageProcessing'
+import { useI18n } from '@/i18n'
 import type { BeadPattern } from '@/types'
 import { ZoomIn, ZoomOut, Maximize2, Grid3x3, Hash, ImagePlus, X, Share2, Download, Maximize, FileText } from 'lucide-vue-next'
 import { clearState } from '@/utils/persistence'
@@ -17,6 +18,7 @@ export default defineComponent({
   setup(props) {
     const store = useAppStore()
     const { handleFileUpload, resetAll: resetAllAction } = useImageProcessing()
+    const { t } = useI18n()
     const canvasRef = ref<HTMLCanvasElement>()
     const vpRef = ref<HTMLDivElement>()
     const mmRef = ref<HTMLCanvasElement>()
@@ -688,30 +690,30 @@ export default defineComponent({
 
       ctx.font = `${subSize}px sans-serif`
       ctx.fillStyle = '#555'
-      ctx.fillText('该图纸由', col1X, line1Y)
+      ctx.fillText(t.value.footerBy, col1X, line1Y)
 
       ctx.font = `bold ${titleSize}px sans-serif`
       const line2Y = line1Y + subSize + Math.round(fh * 0.02)
       ctx.fillStyle = '#d63384'
-      ctx.fillText('DotsMap', col1X, line2Y)
-      const dmW = ctx.measureText('DotsMap').width
+      ctx.fillText(t.value.footerApp, col1X, line2Y)
+      const dmW = ctx.measureText(t.value.footerApp).width
       ctx.fillStyle = '#333'
-      ctx.fillText(' 创作', col1X + dmW, line2Y)
+      ctx.fillText(` ${t.value.footerCreation}`, col1X + dmW, line2Y)
 
       ctx.font = `${subSize}px sans-serif`
       ctx.fillStyle = '#888'
       ctx.fillText(
-        `${store.currentBrand.name} · ${store.selectedPaletteLabel} · ${p.gridWidth}×${p.gridHeight} · 使用 ${sorted.length} 种颜色`,
+        `${store.currentBrand.name} · ${store.selectedPaletteLabel} · ${p.gridWidth}×${p.gridHeight} · ${t.value.footerUsedColors} ${sorted.length} ${t.value.colorUnit}`,
         col1X,
         line2Y + titleSize + Math.round(fh * 0.03),
       )
       ctx.textBaseline = 'middle'
 
       ctx.font = `${subSize}px sans-serif`
-      const w1 = ctx.measureText('该图纸由').width
-      const w3 = ctx.measureText(`${store.currentBrand.name} · ${store.selectedPaletteLabel} · ${p.gridWidth}×${p.gridHeight} · 使用 ${sorted.length} 种颜色`).width
+      const w1 = ctx.measureText(t.value.footerBy).width
+      const w3 = ctx.measureText(`${store.currentBrand.name} · ${store.selectedPaletteLabel} · ${p.gridWidth}×${p.gridHeight} · ${t.value.footerUsedColors} ${sorted.length} ${t.value.colorUnit}`).width
       ctx.font = `bold ${titleSize}px sans-serif`
-      const w2 = ctx.measureText('DotsMap 创作').width
+      const w2 = ctx.measureText(`${t.value.footerApp} ${t.value.footerCreation}`).width
       const titleW = Math.max(w1, w2, w3)
 
       try {
@@ -950,8 +952,8 @@ export default defineComponent({
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
         try {
           await navigator.share({
-            title: 'DotsMap 图纸',
-            text: '来看看我用 DotsMap 做的拼豆图纸！',
+            title: t.value.shareTitle,
+            text: t.value.shareText,
             files: [file],
           })
           return
@@ -964,7 +966,7 @@ export default defineComponent({
     }
 
     function handleClearReset() {
-      if (!confirm('确定要清除当前图片和图纸吗？此操作无法撤销。')) return
+      if (!confirm(t.value.clearConfirm)) return
       resetAllAction()
       clearState()
     }
@@ -1060,15 +1062,15 @@ export default defineComponent({
         <div class={`panel ${shouldFill ? 'h-full' : ''}`}>
           <div class="flex items-center justify-between flex-wrap gap-2">
             <h3 class="panel-title">
-              {store.beadPattern ? `图纸 ${store.beadPattern.gridWidth}×${store.beadPattern.gridHeight}` : '预览'}
+              {store.beadPattern ? `${t.value.patternLabel} ${store.beadPattern.gridWidth}×${store.beadPattern.gridHeight}` : t.value.preview}
             </h3>
             {store.beadPattern ? (
               <div class="flex items-center gap-1.5 flex-wrap">
                 <div class="flex items-center gap-0.5 bg-background rounded-2xl border border-border px-1 py-0.5">
-                  <button class="btn-icon" onClick={() => doZoom(-1)} title="缩小" aria-label="缩小"><ZoomOut size={14} /></button>
+                  <button class="btn-icon" onClick={() => doZoom(-1)} title={t.value.zoomOut} aria-label={t.value.zoomOut}><ZoomOut size={14} /></button>
                   <span class="text-xs font-mono w-10 text-center select-none">{Math.round(zoom.value / 12 * 100)}%</span>
-                  <button class="btn-icon" onClick={() => doZoom(1)} title="放大" aria-label="放大"><ZoomIn size={14} /></button>
-                  <button class="btn-icon" onClick={resetView} title="重置视图" aria-label="重置视图"><Maximize2 size={14} /></button>
+                  <button class="btn-icon" onClick={() => doZoom(1)} title={t.value.zoomIn} aria-label={t.value.zoomIn}><ZoomIn size={14} /></button>
+                  <button class="btn-icon" onClick={resetView} title={t.value.zoomReset} aria-label={t.value.zoomReset}><Maximize2 size={14} /></button>
                 </div>
                 <div class="flex items-center gap-1.5 text-xs select-none">
                   <Grid3x3 size={14} />
@@ -1076,7 +1078,7 @@ export default defineComponent({
                     class={`switch ${showGrid.value ? 'active' : ''}`}
                     role="switch"
                     aria-checked={showGrid.value}
-                    aria-label="网格"
+                    aria-label={t.value.grid}
                     onClick={() => showGrid.value = !showGrid.value}
                   />
                 </div>
@@ -1086,19 +1088,19 @@ export default defineComponent({
                     class={`switch ${showCodes.value ? 'active' : ''}`}
                     role="switch"
                     aria-checked={showCodes.value}
-                    aria-label="色号"
+                    aria-label={t.value.colorCode}
                     onClick={() => showCodes.value = !showCodes.value}
                   />
                 </div>
                 <div class="flex gap-0.5">
-                  <button class="btn btn-sm" onClick={handleShare}><Share2 size={12} /> 分享</button>
-                  <button class="btn btn-sm" onClick={() => showExportModal.value = true}><Download size={12} /> 导出</button>
+                  <button class="btn btn-sm" onClick={handleShare}><Share2 size={12} /> {t.value.share}</button>
+                  <button class="btn btn-sm" onClick={() => showExportModal.value = true}><Download size={12} /> {t.value.export}</button>
                 </div>
               </div>
             ) : hasContent.value ? (
               <div class="flex gap-1">
-                <button class="btn btn-sm" onClick={() => fileInput.value?.click()}>更换图片</button>
-                <button class="btn btn-sm btn-danger" onClick={handleClearReset}><X size={12} /> 清除</button>
+                <button class="btn btn-sm" onClick={() => fileInput.value?.click()}>{t.value.changeImage}</button>
+                <button class="btn btn-sm btn-danger" onClick={handleClearReset}><X size={12} /> {t.value.clear}</button>
               </div>
             ) : null}
           </div>
@@ -1166,8 +1168,8 @@ export default defineComponent({
               onDragleave={onDragLeave}
             >
               <ImagePlus size={32} class="text-primary mb-2" />
-              <p class="text-sm font-medium">拖拽或点击上传图片</p>
-              <p class="text-xs text-text-secondary mt-1">JPG / PNG / WebP</p>
+              <p class="text-sm font-medium">{t.value.dragUpload}</p>
+              <p class="text-xs text-text-secondary mt-1">{t.value.dropFormats}</p>
             </div>
           )}
         </div>
@@ -1183,29 +1185,29 @@ export default defineComponent({
         <div class="export-backdrop" onClick={() => showExportModal.value = false} />
         <div class="export-dialog">
             <div class="export-dialog-header">
-              <span class="text-sm font-semibold">导出图纸</span>
+              <span class="text-sm font-semibold">{t.value.exportDialogTitle}</span>
               <button class="btn-icon" onClick={() => showExportModal.value = false}><X size={14} /></button>
             </div>
             <div class="export-dialog-body">
               <div class="export-option" onClick={downloadHighRes}>
                 <div class="export-option-icon"><Maximize size={18} /></div>
                 <div class="export-option-text">
-                  <h4>高清图纸 (适合打印)</h4>
-                  <p>每颗拼豆放大到 256 像素，带网格线和色号标注，打印出来照着拼非常方便</p>
+                  <h4>{t.value.exportHDTitle}</h4>
+                  <p>{t.value.exportHDDesc}</p>
                 </div>
               </div>
               <div class="export-option" onClick={downloadShareImage}>
                 <div class="export-option-icon"><Share2 size={18} /></div>
                 <div class="export-option-text">
-                  <h4>分享图片 (适合发朋友圈)</h4>
-                  <p>带 DotsMap 品牌信息和二维码的图纸图片，发到朋友圈、小红书等社交平台很好看</p>
+                  <h4>{t.value.exportShareTitle}</h4>
+                  <p>{t.value.exportShareDesc}</p>
                 </div>
               </div>
               <div class="export-option" onClick={downloadDataFiles}>
                 <div class="export-option-icon"><FileText size={18} /></div>
                 <div class="export-option-text">
-                  <h4>数据文件 (适合电脑编辑)</h4>
-                  <p>同时导出 SVG 矢量图和 CSV 颜色列表，可以在电脑上进一步编辑修改</p>
+                  <h4>{t.value.exportDataTitle}</h4>
+                  <p>{t.value.exportDataDesc}</p>
                 </div>
               </div>
             </div>

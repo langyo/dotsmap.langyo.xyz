@@ -1,4 +1,5 @@
 import { useAppStore } from '@/stores/app'
+import { useI18n } from '@/i18n'
 import { nextTick } from 'vue'
 import {
   removeBackground,
@@ -13,6 +14,7 @@ import type { BeadPattern } from '@/types'
 
 export function useImageProcessing() {
   const store = useAppStore()
+  const { t } = useI18n()
 
   function dataURLFromImageData(imageData: ImageData): string {
     return imageDataToCanvas(imageData).toDataURL()
@@ -41,7 +43,7 @@ export function useImageProcessing() {
       await nextTick()
       store.isRestoring = false
     } catch (err) {
-      handleError(err, '图片加载失败')
+      handleError(err, t.value.loadImageFailed)
     } finally {
       store.isProcessing = false
       store.isRestoring = false

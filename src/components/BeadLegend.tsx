@@ -1,5 +1,6 @@
 import { defineComponent, computed } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { useI18n } from '@/i18n'
 import type { BeadColor } from '@/data/perlerColors'
 import { contrastTextColor } from '@/data/perlerColors'
 
@@ -7,6 +8,7 @@ export default defineComponent({
   name: 'BeadLegend',
   setup() {
     const store = useAppStore()
+    const { t } = useI18n()
 
     const legendItems = computed(() => {
       const usage = store.colorUsage
@@ -22,14 +24,14 @@ export default defineComponent({
       <div class="panel">
         <div class="flex items-center justify-between">
           <span class="text-xs font-medium">
-            用量统计
+            {t.value.usageStats}
             <span class="text-text-secondary font-normal ml-1.5">
-              {legendItems.value.length}色 · {totalBeads.value}颗
+              {legendItems.value.length}{t.value.colorUnit} · {totalBeads.value}{t.value.beadUnit}
             </span>
           </span>
           {store.highlightCode && (
             <button class="text-xs text-primary hover:underline" onClick={() => store.highlightCode = null}>
-              清除筛选
+              {t.value.clearFilter}
             </button>
           )}
         </div>
@@ -40,7 +42,7 @@ export default defineComponent({
           <div class="flex items-center gap-2 text-xs p-2 rounded-2xl bg-primary/10 text-primary">
             <div class="w-3 h-3 rounded-full border border-primary/30"
               style={{ backgroundColor: hc?.hex }} />
-            仅显示: {hc?.code} {hc?.name}
+            {t.value.onlyShowing}: {hc?.code} {hc?.name}
           </div>
           )
         })()}
