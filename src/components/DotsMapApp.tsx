@@ -7,8 +7,8 @@ import PaletteSelector from './PaletteSelector'
 import PatternCanvas from './PatternCanvas'
 import BeadLegend from './BeadLegend'
 import LangSwitcher from './LangSwitcher'
-import { Sun, Moon, Menu, X, Info, Github, RotateCcw } from 'lucide-vue-next'
-import { saveState, loadState, clearState } from '@/utils/persistence'
+import { Sun, Moon, Menu, X, Info, Github } from 'lucide-vue-next'
+import { saveState, loadState } from '@/utils/persistence'
 
 export default defineComponent({
   name: 'DotsMapApp',
@@ -56,12 +56,6 @@ export default defineComponent({
         }, 500)
       }
     })
-
-    function handleHeaderReset() {
-      if (!confirm(t.value.resetConfirm)) return
-      store.resetAll()
-      clearState()
-    }
 
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') leftOpen.value = false
@@ -154,11 +148,6 @@ export default defineComponent({
             </div>
             <div class="flex items-center gap-1.5">
               <LangSwitcher />
-              {hasSource && (
-                <button class="btn btn-sm" onClick={handleHeaderReset}>
-                  <RotateCcw size={14} /> {t.value.reset}
-                </button>
-              )}
               <button class="btn-icon" onClick={() => showAbout.value = true} title={t.value.about}>
                 <Info size={16} />
               </button>

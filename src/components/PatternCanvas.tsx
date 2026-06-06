@@ -3,7 +3,7 @@ import { useAppStore } from '@/stores/app'
 import { useImageProcessing } from '@/composables/useImageProcessing'
 import { useI18n } from '@/i18n'
 import type { BeadPattern } from '@/types'
-import { ZoomIn, ZoomOut, Maximize2, Grid3x3, Hash, ImagePlus, X, Share2, Download, Maximize, FileText, Square, Circle, CircleDot } from 'lucide-vue-next'
+import { ZoomIn, ZoomOut, Maximize2, Grid3x3, Hash, ImagePlus, X, Share2, Download, Maximize, FileText, Square, Circle, CircleDot, RotateCcw } from 'lucide-vue-next'
 import { clearState } from '@/utils/persistence'
 
 const ZOOM_LEVELS = [1, 2, 3, 4, 6, 8, 10, 12, 16, 20, 24, 32]
@@ -19,7 +19,7 @@ export default defineComponent({
   setup(props) {
     const store = useAppStore()
     const { handleFileUpload, resetAll: resetAllAction } = useImageProcessing()
-    const { t } = useI18n()
+    const { t, colorLabel } = useI18n()
     const canvasRef = ref<HTMLCanvasElement>()
     const vpRef = ref<HTMLDivElement>()
     const mmRef = ref<HTMLCanvasElement>()
@@ -1257,6 +1257,7 @@ export default defineComponent({
                 <div class="flex gap-0.5">
                   <button class="btn btn-sm" onClick={handleShare}><Share2 size={12} /> {t.value.share}</button>
                   <button class="btn btn-sm" onClick={() => showExportModal.value = true}><Download size={12} /> {t.value.export}</button>
+                  <button class="btn btn-sm" onClick={handleClearReset}><RotateCcw size={12} /> {t.value.clear}</button>
                 </div>
               </div>
             ) : hasContent.value ? (
@@ -1316,7 +1317,7 @@ export default defineComponent({
                   <div class="w-3 h-3 rounded-full border border-black/10"
                     style={{ backgroundColor: store.selectedPalette.find(c => c.code === hoverCell.value!.code)?.hex ?? '#888' }} />
                   <span class="font-mono">({hoverCell.value.x}, {hoverCell.value.y})</span>
-                  <span>{hoverCell.value.name}</span>
+                  <span>{colorLabel(hoverCell.value.code, hoverCell.value.name)}</span>
                 </div>
               )}
             </>

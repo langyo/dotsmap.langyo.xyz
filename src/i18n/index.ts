@@ -78,7 +78,23 @@ export function useI18n() {
     locale.value = code
   }
 
+  function colorLabel(code: string, name: string): string {
+    const hasCJK = /[\u4e00-\u9fff]/.test(name)
+    const isHans = locale.value === 'zh-hans'
+    const isHant = locale.value === 'zh-hant'
+    if (isHant) {
+      const tcn = t.value.colorNames[name]
+      return tcn ? `${code} ${tcn}` : `${code} ${name}`
+    }
+    if (hasCJK && !isHans) {
+      const translated = t.value.colorNames[name]
+      if (translated && translated !== name) return `${code} ${translated}`
+      return code
+    }
+    return `${code} ${name}`
+  }
+
   const locales = computed(() => localeOrder.map((code) => ({ code, meta: localeMeta[code] })))
 
-  return { locale, meta, t, categoryLabel, familyLabel, setLocale, locales }
+  return { locale, meta, t, categoryLabel, familyLabel, colorLabel, setLocale, locales }
 }

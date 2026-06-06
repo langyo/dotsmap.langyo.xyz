@@ -9,7 +9,7 @@ export default defineComponent({
   setup() {
     const store = useAppStore()
     const { applyPreprocessing } = useImageProcessing()
-    const { t, categoryLabel } = useI18n()
+    const { t, categoryLabel, colorLabel } = useI18n()
     const selectedCategory = ref<BeadCategory | null>(null)
 
     let ppTimer: ReturnType<typeof setTimeout> | null = null
@@ -105,7 +105,7 @@ export default defineComponent({
               key={col.code}
               class="flex flex-col items-center transition-transform hover:scale-125 hover:z-10 cursor-default"
               style={{ width: '28px' }}
-              title={`${col.code} ${col.name} (${col.hex})`}
+              title={`${colorLabel(col.code, col.name)} (${col.hex})`}
             >
               <div
                 class="w-5 h-5 rounded-full border border-black/10 flex-shrink-0"
