@@ -1,4 +1,5 @@
 import { useAppStore } from '@/stores/app'
+import { nextTick } from 'vue'
 import {
   removeBackground,
   resizeImage,
@@ -36,8 +37,9 @@ export function useImageProcessing() {
       ctx.drawImage(img, 0, 0)
       store.isRestoring = true
       store.setSourceImage(img, canvas.toDataURL())
-      store.isRestoring = false
       applyPreprocessing()
+      await nextTick()
+      store.isRestoring = false
     } catch (err) {
       handleError(err, '图片加载失败')
     } finally {
