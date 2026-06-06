@@ -17,4 +17,4 @@ export interface BeadPattern {
   sourceHeight: number
 }
 
-export type PreprocessMode = 'none' | 'remove-bg' | 'magic-wand'
+export type PreprocessMode = 'none' | 'remove-bg'

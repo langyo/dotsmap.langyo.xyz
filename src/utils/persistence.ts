@@ -10,9 +10,6 @@ export interface PersistedState {
   gridHeight: number
   preprocessMode: string
   bgThreshold: number
-  magicTolerance: number
-  magicX: number
-  magicY: number
 }
 
 function openDB(): Promise<IDBDatabase> {

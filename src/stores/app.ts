@@ -30,11 +30,8 @@ export const useAppStore = defineStore('app', () => {
   const gridWidth = ref<number>(50)
   const gridHeight = ref<number>(50)
   const beadSize = ref<number>(10)
-  const preprocessMode = ref<PreprocessMode>('none')
-  const bgThreshold = ref<number>(30)
-  const magicTolerance = ref<number>(32)
-  const magicX = ref<number>(0)
-  const magicY = ref<number>(0)
+  const preprocessMode = ref<PreprocessMode>('remove-bg')
+  const bgThreshold = ref<number>(2)
   const isProcessing = ref<boolean>(false)
   const colorUsage = ref<Record<string, number>>({})
   const highlightCode = ref<string | null>(null)
@@ -108,7 +105,7 @@ export const useAppStore = defineStore('app', () => {
   function resetPreprocess() {
     processedImageData.value = null
     processedDataURL.value = null
-    preprocessMode.value = 'none'
+    preprocessMode.value = 'remove-bg'
   }
 
   function setError(msg: string | null) {
@@ -124,9 +121,6 @@ export const useAppStore = defineStore('app', () => {
       gridHeight: number
       preprocessMode: string
       bgThreshold: number
-      magicTolerance: number
-      magicX: number
-      magicY: number
     },
     img: HTMLImageElement,
   ) {
@@ -141,9 +135,6 @@ export const useAppStore = defineStore('app', () => {
     gridHeight.value = data.gridHeight
     preprocessMode.value = data.preprocessMode as PreprocessMode
     bgThreshold.value = data.bgThreshold
-    magicTolerance.value = data.magicTolerance
-    magicX.value = data.magicX
-    magicY.value = data.magicY
     sourceImage.value = img
     sourceDataURL.value = data.sourceDataURL
   }
@@ -162,11 +153,8 @@ export const useAppStore = defineStore('app', () => {
     beadPattern.value = null
     gridWidth.value = 50
     gridHeight.value = 50
-    preprocessMode.value = 'none'
-    bgThreshold.value = 30
-    magicTolerance.value = 32
-    magicX.value = 0
-    magicY.value = 0
+    preprocessMode.value = 'remove-bg'
+    bgThreshold.value = 2
     isProcessing.value = false
     colorUsage.value = {}
     error.value = null
@@ -179,7 +167,7 @@ export const useAppStore = defineStore('app', () => {
     selectedPalette, selectedPaletteLabel, selectedPaletteCount,
     beadedImageData, beadedDataURL, beadPattern,
     gridWidth, gridHeight, beadSize,
-    preprocessMode, bgThreshold, magicTolerance, magicX, magicY,
+    preprocessMode, bgThreshold,
     isProcessing, colorUsage, highlightCode, brands, error,
     isRestoring,
     setSourceImage, setBrand,

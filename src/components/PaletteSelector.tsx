@@ -1,4 +1,4 @@
-import { defineComponent, ref, computed } from 'vue'
+import { defineComponent, ref, computed, watch } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { useImageProcessing } from '@/composables/useImageProcessing'
 import { categoryLabel, type BeadCategory } from '@/data/perlerColors'
@@ -7,8 +7,12 @@ export default defineComponent({
   name: 'PaletteSelector',
   setup() {
     const store = useAppStore()
-    const { applyPreprocessing, resetAndRegenerate } = useImageProcessing()
+    const { applyPreprocessing } = useImageProcessing()
     const selectedCategory = ref<BeadCategory | null>(null)
+
+    watch(() => [store.preprocessMode, store.bgThreshold] as const, () => {
+      if (store.sourceImage) applyPreprocessing()
+    })
 
     const categories = computed(() => {
       const cats = new Map<BeadCategory, number>()
@@ -26,7 +30,6 @@ export default defineComponent({
     const ppModes = [
       { value: 'none' as const, label: '无' },
       { value: 'remove-bg' as const, label: '去背景' },
-      { value: 'magic-wand' as const, label: '魔术棒' },
     ]
 
     return () => (
@@ -127,38 +130,10 @@ export default defineComponent({
                 <span>背景阈值</span>
                 <span class="font-mono">{store.bgThreshold}</span>
               </div>
-              <input type="range" class="w-full" min={5} max={120} value={store.bgThreshold}
+              <input type="range" class="w-full" min={1} max={120} value={store.bgThreshold}
                 onInput={(e) => (store.bgThreshold = parseInt((e.target as HTMLInputElement).value))} />
             </label>
           )}
-
-          {store.preprocessMode === 'magic-wand' && (
-            <label class="block animate-fade-in">
-              <div class="flex justify-between text-xs text-text-secondary mb-1">
-                <span>容差</span>
-                <span class="font-mono">{store.magicTolerance}</span>
-              </div>
-              <input type="range" class="w-full" min={5} max={120} value={store.magicTolerance}
-                onInput={(e) => (store.magicTolerance = parseInt((e.target as HTMLInputElement).value))} />
-            </label>
-          )}
-
-          {store.preprocessMode === 'magic-wand' && (
-            <div class="hint">点击画布选取要保留的区域</div>
-          )}
-
-          <div class="flex gap-2">
-            {store.preprocessMode !== 'none' && (
-              <button class="btn btn-sm btn-primary flex-1" onClick={applyPreprocessing} disabled={store.isProcessing}>
-                应用并重新生成
-              </button>
-            )}
-            {store.processedDataURL && (
-              <button class="btn btn-sm flex-1" onClick={resetAndRegenerate}>
-                撤销
-              </button>
-            )}
-          </div>
         </div>
       </div>
     )

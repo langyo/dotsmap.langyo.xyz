@@ -16,7 +16,7 @@ export default defineComponent({
   },
   setup(props) {
     const store = useAppStore()
-    const { handleFileUpload, applyPreprocessing, resetAll: resetAllAction } = useImageProcessing()
+    const { handleFileUpload, resetAll: resetAllAction } = useImageProcessing()
     const canvasRef = ref<HTMLCanvasElement>()
     const vpRef = ref<HTMLDivElement>()
     const mmRef = ref<HTMLCanvasElement>()
@@ -326,24 +326,6 @@ export default defineComponent({
       if (dragCounter.value <= 0) { dragCounter.value = 0; isDragging.value = false }
     }
 
-    function handleMagicWandClick(e: MouseEvent) {
-      if (store.preprocessMode !== 'magic-wand' || store.beadPattern || !store.sourceImage) return
-      if (!canvasRef.value || !vpRef.value) return
-      const rect = vpRef.value.getBoundingClientRect()
-      const canvas = canvasRef.value
-      const canvasX = e.clientX - rect.left - panX.value
-      const canvasY = e.clientY - rect.top - panY.value
-      if (canvasX < 0 || canvasY < 0 || canvasX >= canvas.width || canvasY >= canvas.height) return
-      const sourceW = store.sourceImage.width
-      const sourceH = store.sourceImage.height
-      const ratio = Math.min(1, 512 / sourceW, 512 / sourceH)
-      const resizedW = Math.round(sourceW * ratio)
-      const resizedH = Math.round(sourceH * ratio)
-      store.magicX = Math.floor(Math.max(0, Math.min(resizedW - 1, canvasX * resizedW / canvas.width)))
-      store.magicY = Math.floor(Math.max(0, Math.min(resizedH - 1, canvasY * resizedH / canvas.height)))
-      applyPreprocessing()
-    }
-
     function onWheel(e: WheelEvent) {
       e.preventDefault()
       if (!imgData.value) return
@@ -354,11 +336,6 @@ export default defineComponent({
 
     function onVpMouseDown(e: MouseEvent) {
       if (!vpRef.value) return
-      if (store.preprocessMode === 'magic-wand' && !store.beadPattern) {
-        handleMagicWandClick(e)
-        e.preventDefault()
-        return
-      }
       const rect = vpRef.value.getBoundingClientRect()
       const mx = e.clientX - rect.left
       const my = e.clientY - rect.top
@@ -456,13 +433,6 @@ export default defineComponent({
     function onTouchStart(e: TouchEvent) {
       if (!vpRef.value) return
       e.preventDefault()
-
-      if (store.preprocessMode === 'magic-wand' && !store.beadPattern && e.touches.length === 1) {
-        const t = e.touches[0]
-        const fakeEvt = { clientX: t.clientX, clientY: t.clientY } as MouseEvent
-        handleMagicWandClick(fakeEvt)
-        return
-      }
 
       const rect = vpRef.value.getBoundingClientRect()
 
@@ -826,8 +796,8 @@ export default defineComponent({
       src.height = d.height
       src.getContext('2d')!.putImageData(d, 0, 0)
       ctx.drawImage(src, 0, 0, patternW, patternH)
-      drawExportGrid(ctx, patternW, patternH, p.gridWidth, p.gridHeight)
-      drawExportCodes(ctx, p.gridWidth, p.gridHeight, cellSize, p.cells)
+      if (showGrid.value) drawExportGrid(ctx, patternW, patternH, p.gridWidth, p.gridHeight)
+      if (showCodes.value) drawExportCodes(ctx, p.gridWidth, p.gridHeight, cellSize, p.cells)
       ctx.restore()
 
       await drawFooter(ctx, 0, pad + patternH + pad, totalW, footerH, p, sorted)
@@ -870,19 +840,8 @@ export default defineComponent({
       src.getContext('2d')!.putImageData(d, 0, 0)
       ctx.drawImage(src, 0, 0, patternW, patternH)
 
-      const cW = patternW / p.gridWidth, cH = patternH / p.gridHeight
-      ctx.strokeStyle = 'rgba(128,128,128,0.15)'
-      ctx.lineWidth = 0.5
-      ctx.beginPath()
-      for (let x = 0; x <= p.gridWidth; x++) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, patternH) }
-      for (let y = 0; y <= p.gridHeight; y++) { ctx.moveTo(0, y * cH); ctx.lineTo(patternW, y * cH) }
-      ctx.stroke()
-      ctx.strokeStyle = 'rgba(128,128,128,0.35)'
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      for (let x = 0; x <= p.gridWidth; x += 10) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, patternH) }
-      for (let y = 0; y <= p.gridHeight; y += 10) { ctx.moveTo(0, y * cH); ctx.lineTo(patternW, y * cH) }
-      ctx.stroke()
+      if (showGrid.value) drawExportGrid(ctx, patternW, patternH, p.gridWidth, p.gridHeight)
+      if (showCodes.value) drawExportCodes(ctx, p.gridWidth, p.gridHeight, patternW / p.gridWidth, p.cells)
       ctx.restore()
 
       await drawFooter(ctx, 0, pad + patternH + pad, totalW, footerH, p, sorted)
@@ -930,19 +889,8 @@ export default defineComponent({
       src.getContext('2d')!.putImageData(d, 0, 0)
       ctx.drawImage(src, 0, 0, patternW, patternH)
 
-      const cW = patternW / p.gridWidth, cH = patternH / p.gridHeight
-      ctx.strokeStyle = 'rgba(128,128,128,0.15)'
-      ctx.lineWidth = 0.5
-      ctx.beginPath()
-      for (let x = 0; x <= p.gridWidth; x++) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, patternH) }
-      for (let y = 0; y <= p.gridHeight; y++) { ctx.moveTo(0, y * cH); ctx.lineTo(patternW, y * cH) }
-      ctx.stroke()
-      ctx.strokeStyle = 'rgba(128,128,128,0.35)'
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      for (let x = 0; x <= p.gridWidth; x += 10) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, patternH) }
-      for (let y = 0; y <= p.gridHeight; y += 10) { ctx.moveTo(0, y * cH); ctx.lineTo(patternW, y * cH) }
-      ctx.stroke()
+      if (showGrid.value) drawExportGrid(ctx, patternW, patternH, p.gridWidth, p.gridHeight)
+      if (showCodes.value) drawExportCodes(ctx, p.gridWidth, p.gridHeight, patternW / p.gridWidth, p.cells)
       ctx.restore()
 
       await drawFooter(ctx, 0, pad + patternH + pad, totalW, footerH, p, sorted)
@@ -959,7 +907,6 @@ export default defineComponent({
           })
           return
         } catch {
-          // user cancelled
         }
       }
 
@@ -1047,7 +994,6 @@ export default defineComponent({
       if (!hasContent.value) return 'pointer'
       if (isPanning.value) return 'grabbing'
       if (dragType.value !== 'none') return 'default'
-      if (store.preprocessMode === 'magic-wand' && !store.beadPattern) return 'crosshair'
       if (imgData.value) return 'grab'
       return 'default'
     })
