@@ -49,14 +49,18 @@ export const useAppStore = defineStore('app', () => {
     resetGeneratedState()
   }
 
-  function resetGeneratedState() {
+  function resetBeadState() {
     beadPattern.value = null
     beadedImageData.value = null
     beadedDataURL.value = null
-    processedImageData.value = null
-    processedDataURL.value = null
     colorUsage.value = {}
     highlightCode.value = null
+  }
+
+  function resetGeneratedState() {
+    resetBeadState()
+    processedImageData.value = null
+    processedDataURL.value = null
   }
 
   function setBrand(brand: BrandDef) {
@@ -93,7 +97,7 @@ export const useAppStore = defineStore('app', () => {
     selectedPalette.value = colors
     selectedPaletteCount.value = count
     selectedPaletteLabel.value = count === currentBrand.value.colors.length ? '全部' : `${count}色`
-    resetGeneratedState()
+    resetBeadState()
   }
 
   function setPreprocessMode(mode: PreprocessMode) {

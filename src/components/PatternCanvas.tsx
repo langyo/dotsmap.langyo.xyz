@@ -737,7 +737,7 @@ export default defineComponent({
             const lg = parseInt(sorted[i].hex.slice(3, 5), 16) / 255
             const lb = parseInt(sorted[i].hex.slice(5, 7), 16) / 255
             const lum = 0.299 * lr + 0.587 * lg + 0.114 * lb
-            ctx.fillStyle = lum > 0.55 ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.95)'
+            ctx.fillStyle = lum > 0.45 ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.9)'
             ctx.font = `bold ${fontSize}px monospace`
             ctx.textAlign = 'center'
             ctx.textBaseline = 'middle'
@@ -782,9 +782,9 @@ export default defineComponent({
       if (!d || !p) return
 
       const maxDim = 16000
-      const cellSize = Math.min(256, Math.floor((maxDim - 96) / Math.max(p.gridWidth, p.gridHeight)))
       const pad = 48
       const footerH = 180
+      const cellSize = Math.min(256, Math.floor((maxDim - pad * 2 - footerH) / Math.max(p.gridWidth, p.gridHeight)))
 
       const patternW = p.gridWidth * cellSize
       const patternH = p.gridHeight * cellSize
@@ -825,11 +825,15 @@ export default defineComponent({
       const p = store.beadPattern
       if (!d || !p) return
 
-      const scale = Math.max(6, Math.ceil(2400 / d.width))
-      const patternW = d.width * scale
-      const patternH = d.height * scale
       const pad = 64
       const footerH = 300
+      const maxShareDim = 16000
+      const scale = Math.min(
+        Math.max(6, Math.ceil(2400 / d.width)),
+        Math.floor((maxShareDim - pad * 2 - footerH) / Math.max(d.width, d.height)),
+      )
+      const patternW = d.width * scale
+      const patternH = d.height * scale
 
       const { sorted } = getUsedColors(p)
 
@@ -874,11 +878,15 @@ export default defineComponent({
       const p = store.beadPattern
       if (!d || !p) return
 
-      const scale = Math.max(6, Math.ceil(2400 / d.width))
-      const patternW = d.width * scale
-      const patternH = d.height * scale
       const pad = 64
       const footerH = 300
+      const maxShareDim = 16000
+      const scale = Math.min(
+        Math.max(6, Math.ceil(2400 / d.width)),
+        Math.floor((maxShareDim - pad * 2 - footerH) / Math.max(d.width, d.height)),
+      )
+      const patternW = d.width * scale
+      const patternH = d.height * scale
 
       const { sorted } = getUsedColors(p)
 
