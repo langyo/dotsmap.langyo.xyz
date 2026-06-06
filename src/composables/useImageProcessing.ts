@@ -34,7 +34,9 @@ export function useImageProcessing() {
       const ctx = canvas.getContext('2d')
       if (!ctx) throw new Error('Canvas not supported')
       ctx.drawImage(img, 0, 0)
+      store.isRestoring = true
       store.setSourceImage(img, canvas.toDataURL())
+      store.isRestoring = false
       applyPreprocessing()
     } catch (err) {
       handleError(err, '图片加载失败')

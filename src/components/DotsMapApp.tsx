@@ -36,8 +36,8 @@ export default defineComponent({
 
     let saveTimer: ReturnType<typeof setTimeout> | null = null
     watch(() => store.beadPattern, (p) => {
+      if (saveTimer) { clearTimeout(saveTimer); saveTimer = null }
       if (p && store.sourceDataURL) {
-        if (saveTimer) clearTimeout(saveTimer)
         saveTimer = setTimeout(async () => {
           try {
             await saveState({

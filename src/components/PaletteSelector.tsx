@@ -10,8 +10,11 @@ export default defineComponent({
     const { applyPreprocessing } = useImageProcessing()
     const selectedCategory = ref<BeadCategory | null>(null)
 
+    let ppTimer: ReturnType<typeof setTimeout> | null = null
     watch(() => [store.preprocessMode, store.bgThreshold] as const, () => {
-      if (store.sourceImage) applyPreprocessing()
+      if (!store.sourceImage) return
+      if (ppTimer) clearTimeout(ppTimer)
+      ppTimer = setTimeout(() => applyPreprocessing(), 80)
     })
 
     const categories = computed(() => {

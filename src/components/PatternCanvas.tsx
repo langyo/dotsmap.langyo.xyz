@@ -781,7 +781,8 @@ export default defineComponent({
       const p = store.beadPattern
       if (!d || !p) return
 
-      const cellSize = 256
+      const maxDim = 16000
+      const cellSize = Math.min(256, Math.floor((maxDim - 96) / Math.max(p.gridWidth, p.gridHeight)))
       const pad = 48
       const footerH = 180
 
@@ -1149,7 +1150,7 @@ export default defineComponent({
                 <div class="export-option-icon"><Maximize size={18} /></div>
                 <div class="export-option-text">
                   <h4>高清图纸 (适合打印)</h4>
-                  <p>每颗拼豆放大到 64 像素，带网格线和色号标注，打印出来照着拼非常方便</p>
+                  <p>每颗拼豆放大到 256 像素，带网格线和色号标注，打印出来照着拼非常方便</p>
                 </div>
               </div>
               <div class="export-option" onClick={downloadShareImage}>
