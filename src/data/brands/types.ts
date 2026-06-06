@@ -21,6 +21,7 @@ export interface BrandDef {
   shortName: string
   prefix: string
   colors: BeadColor[]
+  paletteSizes?: number[]
 }
 
 function h(hex: string): [number, number, number] {

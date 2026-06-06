@@ -87,14 +87,27 @@ export default defineComponent({
         )}
 
         <div class="flex flex-wrap gap-0.5 p-1 rounded-2xl bg-background">
-          {filteredPalette.value.map((col) => (
-            <div
-              key={col.code}
-              class="w-4 h-4 rounded-full border border-black/10 flex-shrink-0 transition-transform hover:scale-150 hover:z-10"
-              style={{ backgroundColor: col.hex }}
-              title={`${col.code} ${col.name} (${col.hex})`}
-            />
-          ))}
+          {filteredPalette.value.map((col) => {
+            const r = parseInt(col.hex.slice(1, 3), 16) / 255
+            const g = parseInt(col.hex.slice(3, 5), 16) / 255
+            const b = parseInt(col.hex.slice(5, 7), 16) / 255
+            const lum = 0.299 * r + 0.587 * g + 0.114 * b
+            const textColor = lum > 0.45 ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.9)'
+            return (
+              <div
+                key={col.code}
+                class="flex flex-col items-center transition-transform hover:scale-125 hover:z-10 cursor-default"
+                style={{ width: '28px' }}
+                title={`${col.code} ${col.name} (${col.hex})`}
+              >
+                <div
+                  class="w-5 h-5 rounded-full border border-black/10 flex-shrink-0"
+                  style={{ backgroundColor: col.hex }}
+                />
+                <span class="text-[8px] leading-tight font-mono mt-0.5 truncate w-full text-center select-none" style={{ color: 'var(--text-secondary)' }}>{col.code}</span>
+              </div>
+            )
+          })}
         </div>
 
         <div class="flex gap-2 text-xs">

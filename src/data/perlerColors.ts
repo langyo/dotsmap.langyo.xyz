@@ -98,14 +98,12 @@ function selectDiverse(colors: BeadColor[], count: number): BeadColor[] {
 
 export function buildPalettes(brand: BrandDef): PaletteSet[] {
   const max = brand.colors.length
-  return [
-    { label: '24色', count: 24, colors: selectDiverse(brand.colors, 24) },
-    { label: '36色', count: 36, colors: selectDiverse(brand.colors, 36) },
-    { label: '48色', count: 48, colors: selectDiverse(brand.colors, 48) },
-    { label: '72色', count: 72, colors: selectDiverse(brand.colors, Math.min(72, max)) },
-    { label: '144色', count: 144, colors: selectDiverse(brand.colors, Math.min(144, max)) },
-    { label: '全部', count: max, colors: [...brand.colors] },
-  ].filter((p) => p.colors.length >= Math.min(p.count, 24))
+  const sizes = brand.paletteSizes ?? [24, 36, 48, 72, 144]
+  const palettes: PaletteSet[] = sizes
+    .filter((s) => s < max)
+    .map((s) => ({ label: `${s}色`, count: s, colors: selectDiverse(brand.colors, s) }))
+  palettes.push({ label: '全部', count: max, colors: [...brand.colors] })
+  return palettes.filter((p) => p.colors.length >= Math.min(p.count, 24))
 }
 
 export function getPaletteByCount(brand: BrandDef, count: number): BeadColor[] {

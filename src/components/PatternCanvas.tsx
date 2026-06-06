@@ -209,17 +209,17 @@ export default defineComponent({
     function drawGrid(ctx: CanvasRenderingContext2D, cw: number, ch: number, gw: number, gh: number) {
       const cW = cw / gw
       const cH = ch / gh
-      ctx.strokeStyle = 'rgba(128,128,128,0.15)'
+      ctx.strokeStyle = 'rgba(128,128,128,0.08)'
       ctx.lineWidth = 0.5
       ctx.beginPath()
       for (let x = 0; x <= gw; x++) { ctx.moveTo(Math.round(x * cW) + 0.5, 0); ctx.lineTo(Math.round(x * cW) + 0.5, ch) }
       for (let y = 0; y <= gh; y++) { ctx.moveTo(0, Math.round(y * cH) + 0.5); ctx.lineTo(cw, Math.round(y * cH) + 0.5) }
       ctx.stroke()
-      ctx.strokeStyle = 'rgba(128,128,128,0.35)'
+      ctx.strokeStyle = 'rgba(128,128,128,0.3)'
       ctx.lineWidth = 1
       ctx.beginPath()
-      for (let x = 0; x <= gw; x += 10) { ctx.moveTo(Math.round(x * cW) + 0.5, 0); ctx.lineTo(Math.round(x * cW) + 0.5, ch) }
-      for (let y = 0; y <= gh; y += 10) { ctx.moveTo(0, Math.round(y * cH) + 0.5); ctx.lineTo(cw, Math.round(y * cH) + 0.5) }
+      for (let x = 0; x <= gw; x += 5) { ctx.moveTo(Math.round(x * cW) + 0.5, 0); ctx.lineTo(Math.round(x * cW) + 0.5, ch) }
+      for (let y = 0; y <= gh; y += 5) { ctx.moveTo(0, Math.round(y * cH) + 0.5); ctx.lineTo(cw, Math.round(y * cH) + 0.5) }
       ctx.stroke()
     }
 
@@ -597,7 +597,7 @@ export default defineComponent({
     function drawExportGrid(ctx: CanvasRenderingContext2D, w: number, h: number, gw: number, gh: number) {
       const cW = w / gw
       const cH = h / gh
-      ctx.strokeStyle = 'rgba(128,128,128,0.18)'
+      ctx.strokeStyle = 'rgba(128,128,128,0.12)'
       ctx.lineWidth = 0.5
       ctx.beginPath()
       for (let x = 0; x <= gw; x++) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, h) }
@@ -606,8 +606,8 @@ export default defineComponent({
       ctx.strokeStyle = 'rgba(128,128,128,0.4)'
       ctx.lineWidth = 1
       ctx.beginPath()
-      for (let x = 0; x <= gw; x += 10) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, h) }
-      for (let y = 0; y <= gh; y += 10) { ctx.moveTo(0, y * cH); ctx.lineTo(w, y * cH) }
+      for (let x = 0; x <= gw; x += 5) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, h) }
+      for (let y = 0; y <= gh; y += 5) { ctx.moveTo(0, y * cH); ctx.lineTo(w, y * cH) }
       ctx.stroke()
     }
 
