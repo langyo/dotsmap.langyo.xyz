@@ -1,12 +1,14 @@
 import { defineComponent, ref, computed } from 'vue'
 import { useAppStore } from '@/stores/app'
-import { groupByFamily, familyOrder, familyLabel, categoryLabel, type BeadColor, type BeadCategory, type ColorFamily } from '@/data/perlerColors'
+import { useI18n } from '@/i18n'
+import { groupByFamily, familyOrder, type BeadColor, type BeadCategory, type ColorFamily } from '@/data/perlerColors'
 import { SwatchBook, ChevronDown, ChevronUp } from 'lucide-vue-next'
 
 export default defineComponent({
   name: 'ColorSwatchPanel',
   setup() {
     const store = useAppStore()
+    const { t, categoryLabel, familyLabel } = useI18n()
     const isExpanded = ref(false)
     const selectedFamily = ref<ColorFamily | null>(null)
     const selectedCategory = ref<BeadCategory | null>(null)
@@ -29,7 +31,7 @@ export default defineComponent({
       for (const f of familyOrder) {
         const famColors = groups.get(f)
         if (famColors && famColors.length > 0) {
-          result.push({ family: f, label: familyLabel[f], colors: famColors })
+          result.push({ family: f, label: familyLabel.value[f], colors: famColors })
         }
       }
       return result
@@ -40,8 +42,8 @@ export default defineComponent({
         <button class="flex items-center justify-between w-full rounded-2xl px-3 py-1 hover:bg-surface/60 transition-colors" onClick={() => (isExpanded.value = !isExpanded.value)}>
           <h3 class="panel-title">
             <SwatchBook size={16} />
-            {store.currentBrand.name} 色卡
-            <span class="font-normal text-text-secondary text-xs">({store.currentBrand.colors.length}色)</span>
+            {store.currentBrand.name} {t.value.colorCode}
+            <span class="font-normal text-text-secondary text-xs">({store.currentBrand.colors.length}{t.value.colorUnit})</span>
           </h3>
           {isExpanded.value ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </button>
@@ -55,7 +57,7 @@ export default defineComponent({
                   class={`btn btn-sm ${!selectedCategory.value ? 'btn-primary' : ''}`}
                   onClick={() => (selectedCategory.value = null)}
                 >
-                  全部({store.currentBrand.colors.length})
+                  {t.value.all}({store.currentBrand.colors.length})
                 </button>
                 {categories.value.map(([cat, cnt]) => (
                   <button
@@ -63,7 +65,7 @@ export default defineComponent({
                     class={`btn btn-sm ${selectedCategory.value === cat ? 'btn-primary' : ''}`}
                     onClick={() => (selectedCategory.value = selectedCategory.value === cat ? null : cat)}
                   >
-                    {categoryLabel[cat]}({cnt})
+                    {categoryLabel.value[cat]}({cnt})
                   </button>
                 ))}
               </div>

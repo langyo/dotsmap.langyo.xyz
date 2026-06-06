@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import type { BeadColor, BrandDef, PaletteSet } from '@/data/perlerColors'
 import { allBrands, buildPalettes, getPaletteByCount } from '@/data/perlerColors'
 import type { BeadPattern, PreprocessMode } from '@/types'
+import { useI18n } from '@/i18n'
 
 function getInitialState() {
   const brand = allBrands[0]
@@ -12,6 +13,7 @@ function getInitialState() {
 }
 
 export const useAppStore = defineStore('app', () => {
+  const { t } = useI18n()
   const sourceImage = ref<HTMLImageElement | null>(null)
   const sourceDataURL = ref<string | null>(null)
   const processedImageData = ref<ImageData | null>(null)
@@ -96,7 +98,7 @@ export const useAppStore = defineStore('app', () => {
     const colors = found ? found.colors : getPaletteByCount(currentBrand.value, count)
     selectedPalette.value = colors
     selectedPaletteCount.value = count
-    selectedPaletteLabel.value = count === currentBrand.value.colors.length ? '全部' : `${count}色`
+    selectedPaletteLabel.value = count === currentBrand.value.colors.length ? t.value.all : `${count}${t.value.colorUnit}`
     resetBeadState()
   }
 
@@ -138,7 +140,7 @@ export const useAppStore = defineStore('app', () => {
     const colors = getPaletteByCount(brand, data.paletteCount)
     selectedPalette.value = colors
     selectedPaletteCount.value = data.paletteCount
-    selectedPaletteLabel.value = data.paletteCount === brand.colors.length ? '全部' : `${data.paletteCount}色`
+    selectedPaletteLabel.value = data.paletteCount === brand.colors.length ? t.value.all : `${data.paletteCount}${t.value.colorUnit}`
     gridWidth.value = Math.max(1, Math.min(200, data.gridWidth))
     gridHeight.value = Math.max(1, Math.min(200, data.gridHeight))
     const validModes: PreprocessMode[] = ['none', 'remove-bg']

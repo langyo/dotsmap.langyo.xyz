@@ -66,7 +66,7 @@ export function useImageProcessing() {
       store.setProcessedImage(imageData, dataURLFromImageData(imageData))
       generatePattern()
     } catch (err) {
-      handleError(err, '预处理失败')
+      handleError(err, t.value.preprocessFailed)
     } finally {
       store.isProcessing = false
     }
@@ -128,7 +128,7 @@ export function useImageProcessing() {
       }
       store.setBeadPattern(pattern, usage)
     } catch (err) {
-      handleError(err, '图纸生成失败')
+      handleError(err, t.value.patternFailed)
     } finally {
       store.isProcessing = false
     }
