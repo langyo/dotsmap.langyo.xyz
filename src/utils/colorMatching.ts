@@ -37,6 +37,7 @@ function getPaletteLab(color: BeadColor): [number, number, number] {
 
 export function clearPaletteCache() {
   paletteLabCache.clear()
+  labCache.clear()
 }
 
 export function findClosestColor(r: number, g: number, b: number, palette: BeadColor[]): BeadColor {

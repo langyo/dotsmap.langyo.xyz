@@ -680,12 +680,12 @@ export default defineComponent({
       )
       ctx.textBaseline = 'middle'
 
+      ctx.font = `${subSize}px sans-serif`
+      const w1 = ctx.measureText('该图纸由').width
+      const w3 = ctx.measureText(`${store.currentBrand.name} · ${store.selectedPaletteLabel} · ${p.gridWidth}×${p.gridHeight} · 使用 ${sorted.length} 种颜色`).width
       ctx.font = `bold ${titleSize}px sans-serif`
-      const titleW = Math.max(
-        ctx.measureText('该图纸由').width,
-        ctx.measureText('DotsMap 创作').width,
-        ctx.measureText(`${store.currentBrand.name} · ${store.selectedPaletteLabel} · ${p.gridWidth}×${p.gridHeight} · 使用 ${sorted.length} 种颜色`).width,
-      )
+      const w2 = ctx.measureText('DotsMap 创作').width
+      const titleW = Math.max(w1, w2, w3)
 
       try {
         const qrCanvas = await generateQRCanvas(qrSize)
