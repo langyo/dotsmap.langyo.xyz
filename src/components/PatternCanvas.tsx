@@ -3,12 +3,13 @@ import { useAppStore } from '@/stores/app'
 import { useImageProcessing } from '@/composables/useImageProcessing'
 import { useI18n } from '@/i18n'
 import type { BeadPattern } from '@/types'
-import { ZoomIn, ZoomOut, Maximize2, Grid3x3, Hash, ImagePlus, X, Share2, Download, Maximize, FileText } from 'lucide-vue-next'
+import { ZoomIn, ZoomOut, Maximize2, Grid3x3, Hash, ImagePlus, X, Share2, Download, Maximize, FileText, Square, Circle, CircleDot } from 'lucide-vue-next'
 import { clearState } from '@/utils/persistence'
 
 const ZOOM_LEVELS = [1, 2, 3, 4, 6, 8, 10, 12, 16, 20, 24, 32]
 const SB_SIZE = 10
 const MM_MAX = 160
+type RenderMode = 'square' | 'solid-cyl' | 'hollow-cyl'
 
 export default defineComponent({
   name: 'PatternCanvas',
@@ -24,6 +25,7 @@ export default defineComponent({
     const mmRef = ref<HTMLCanvasElement>()
     const showGrid = ref(true)
     const showCodes = ref(true)
+    const renderMode = ref<RenderMode>('square')
     const zoom = ref(1)
     const panX = ref(0)
     const panY = ref(0)
@@ -169,6 +171,8 @@ export default defineComponent({
       centerView()
     }
 
+    const SUPER_SCALE = 2
+
     function drawPattern() {
       const canvas = canvasRef.value
       if (!canvas) return
@@ -180,23 +184,32 @@ export default defineComponent({
 
       if (d) {
         const p = store.beadPattern
-        let drawData = d
-        if (store.highlightCode && p) {
-          drawData = applyHighlight(d, p)
-        }
+        const w = natW.value * zoom.value
+        const h = natH.value * zoom.value
+        const isCyl = renderMode.value !== 'square'
+        const ss = SUPER_SCALE
+        canvas.width = Math.round(w * ss)
+        canvas.height = Math.round(h * ss)
+        canvas.style.width = Math.round(w) + 'px'
+        canvas.style.height = Math.round(h) + 'px'
+        ctx.setTransform(ss, 0, 0, ss, 0, 0)
 
-        const gw = drawData.width
-        const gh = drawData.height
-        const w = gw * zoom.value
-        const h = gh * zoom.value
-        canvas.width = w
-        canvas.height = h
-        ctx.imageSmoothingEnabled = false
-        const src = document.createElement('canvas')
-        src.width = gw
-        src.height = gh
-        src.getContext('2d')!.putImageData(drawData, 0, 0)
-        ctx.drawImage(src, 0, 0, w, h)
+        if (isCyl && p) {
+          drawCylinderPattern(ctx, w, h, p, store.highlightCode, renderMode.value === 'hollow-cyl')
+        } else {
+          let drawData = d
+          if (store.highlightCode && p) {
+            drawData = applyHighlight(d, p)
+          }
+          const gw = drawData.width
+          const gh = drawData.height
+          ctx.imageSmoothingEnabled = false
+          const src = document.createElement('canvas')
+          src.width = gw
+          src.height = gh
+          src.getContext('2d')!.putImageData(drawData, 0, 0)
+          ctx.drawImage(src, 0, 0, w, h)
+        }
         if (showGrid.value && p) {
           drawGrid(ctx, w, h, p.gridWidth, p.gridHeight)
         }
@@ -603,8 +616,8 @@ export default defineComponent({
       const rect = vpRef.value.getBoundingClientRect()
       const cx = e.clientX - rect.left - panX.value
       const cy = e.clientY - rect.top - panY.value
-      const cW = canvasRef.value.width / store.beadPattern.gridWidth
-      const cH = canvasRef.value.height / store.beadPattern.gridHeight
+      const cW = vW.value / store.beadPattern.gridWidth
+      const cH = vH.value / store.beadPattern.gridHeight
       const gx = Math.floor(cx / cW)
       const gy = Math.floor(cy / cH)
       if (gx < 0 || gy < 0 || gx >= store.beadPattern.gridWidth || gy >= store.beadPattern.gridHeight) {
@@ -622,6 +635,120 @@ export default defineComponent({
       const g = parseInt(hex.slice(3, 5), 16) / 255
       const b = parseInt(hex.slice(5, 7), 16) / 255
       return 0.299 * r + 0.587 * g + 0.114 * b
+    }
+
+    function hexToRgb(hex: string) {
+      return {
+        r: parseInt(hex.slice(1, 3), 16),
+        g: parseInt(hex.slice(3, 5), 16),
+        b: parseInt(hex.slice(5, 7), 16),
+      }
+    }
+
+    function darkenRgb(r: number, g: number, b: number, factor: number) {
+      return {
+        r: Math.round(r * factor),
+        g: Math.round(g * factor),
+        b: Math.round(b * factor),
+      }
+    }
+
+    function drawCylinderBead(
+      ctx: CanvasRenderingContext2D,
+      cx: number, cy: number,
+      radius: number,
+      hex: string,
+      hollow: boolean,
+    ) {
+      const { r, g, b } = hexToRgb(hex)
+      const dark = darkenRgb(r, g, b, 0.45)
+      const mid = darkenRgb(r, g, b, 0.7)
+
+      ctx.save()
+
+      ctx.beginPath()
+      ctx.arc(cx + radius * 0.04, cy + radius * 0.05, radius * 1.01, 0, Math.PI * 2)
+      ctx.fillStyle = 'rgba(0,0,0,0.1)'
+      ctx.fill()
+
+      ctx.beginPath()
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2)
+      ctx.fillStyle = `rgb(${dark.r},${dark.g},${dark.b})`
+      ctx.fill()
+
+      const faceR = radius * 0.9
+      ctx.beginPath()
+      ctx.arc(cx, cy, faceR, 0, Math.PI * 2)
+      const grad = ctx.createRadialGradient(
+        cx - faceR * 0.18, cy - faceR * 0.18, 0,
+        cx, cy, faceR,
+      )
+      grad.addColorStop(0, `rgb(${Math.min(255, r + 60)},${Math.min(255, g + 60)},${Math.min(255, b + 60)})`)
+      grad.addColorStop(0.4, `rgb(${Math.min(255, r + 15)},${Math.min(255, g + 15)},${Math.min(255, b + 15)})`)
+      grad.addColorStop(0.75, `rgb(${r},${g},${b})`)
+      grad.addColorStop(1, `rgb(${mid.r},${mid.g},${mid.b})`)
+      ctx.fillStyle = grad
+      ctx.fill()
+
+      if (hollow) {
+        const holeR = radius * 0.22
+        ctx.beginPath()
+        ctx.arc(cx, cy, holeR, 0, Math.PI * 2)
+        const holeGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, holeR)
+        holeGrad.addColorStop(0, `rgb(${Math.round(dark.r * 0.2)},${Math.round(dark.g * 0.2)},${Math.round(dark.b * 0.2)})`)
+        holeGrad.addColorStop(0.7, `rgb(${Math.round(dark.r * 0.35)},${Math.round(dark.g * 0.35)},${Math.round(dark.b * 0.35)})`)
+        holeGrad.addColorStop(1, `rgb(${Math.round(dark.r * 0.5)},${Math.round(dark.g * 0.5)},${Math.round(dark.b * 0.5)})`)
+        ctx.fillStyle = holeGrad
+        ctx.fill()
+      }
+
+      ctx.beginPath()
+      ctx.arc(cx, cy, faceR * 0.5, -Math.PI * 0.78, -Math.PI * 0.22)
+      ctx.strokeStyle = `rgba(255,255,255,${hollow ? 0.14 : 0.16})`
+      ctx.lineWidth = Math.max(0.5, radius * 0.045)
+      ctx.lineCap = 'round'
+      ctx.stroke()
+
+      ctx.beginPath()
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2)
+      ctx.strokeStyle = `rgba(${dark.r},${dark.g},${dark.b},0.2)`
+      ctx.lineWidth = Math.max(0.3, radius * 0.02)
+      ctx.stroke()
+
+      ctx.restore()
+    }
+
+    function drawCylinderPattern(
+      ctx: CanvasRenderingContext2D,
+      cw: number, ch: number,
+      p: BeadPattern,
+      highlightCode: string | null,
+      hollow: boolean,
+    ) {
+      const cW = cw / p.gridWidth
+      const cH = ch / p.gridHeight
+      const radius = Math.min(cW, cH) * 0.44
+      if (radius < 1) return
+
+      const highlightSet = new Set<string>()
+      if (highlightCode) {
+        for (const c of p.cells) {
+          if (c.colorCode === highlightCode) highlightSet.add(`${c.x},${c.y}`)
+        }
+      }
+
+      ctx.fillStyle = '#f0f0f0'
+      ctx.fillRect(0, 0, cw, ch)
+
+      for (const c of p.cells) {
+        const bx = (c.x + 0.5) * cW
+        const by = (c.y + 0.5) * cH
+        if (highlightCode && !highlightSet.has(`${c.x},${c.y}`)) {
+          drawCylinderBead(ctx, bx, by, radius, '#1e1e1e', hollow)
+        } else {
+          drawCylinderBead(ctx, bx, by, radius, c.hex, hollow)
+        }
+      }
     }
 
     async function generateQRCanvas(size: number): Promise<HTMLCanvasElement> {
@@ -833,12 +960,16 @@ export default defineComponent({
 
       ctx.save()
       ctx.translate(pad, pad)
-      ctx.imageSmoothingEnabled = false
-      const src = document.createElement('canvas')
-      src.width = d.width
-      src.height = d.height
-      src.getContext('2d')!.putImageData(d, 0, 0)
-      ctx.drawImage(src, 0, 0, patternW, patternH)
+      if (renderMode.value !== 'square') {
+        drawCylinderPattern(ctx, patternW, patternH, p, null, renderMode.value === 'hollow-cyl')
+      } else {
+        ctx.imageSmoothingEnabled = false
+        const src = document.createElement('canvas')
+        src.width = d.width
+        src.height = d.height
+        src.getContext('2d')!.putImageData(d, 0, 0)
+        ctx.drawImage(src, 0, 0, patternW, patternH)
+      }
       if (showGrid.value) drawExportGrid(ctx, patternW, patternH, p.gridWidth, p.gridHeight)
       if (showCodes.value) drawExportCodes(ctx, p.gridWidth, p.gridHeight, cellSize, p.cells)
       ctx.restore()
@@ -880,12 +1011,16 @@ export default defineComponent({
 
       ctx.save()
       ctx.translate(pad, pad)
-      ctx.imageSmoothingEnabled = false
-      const src = document.createElement('canvas')
-      src.width = d.width
-      src.height = d.height
-      src.getContext('2d')!.putImageData(d, 0, 0)
-      ctx.drawImage(src, 0, 0, patternW, patternH)
+      if (renderMode.value !== 'square') {
+        drawCylinderPattern(ctx, patternW, patternH, p, null, renderMode.value === 'hollow-cyl')
+      } else {
+        ctx.imageSmoothingEnabled = false
+        const src = document.createElement('canvas')
+        src.width = d.width
+        src.height = d.height
+        src.getContext('2d')!.putImageData(d, 0, 0)
+        ctx.drawImage(src, 0, 0, patternW, patternH)
+      }
 
       if (showGrid.value) drawExportGrid(ctx, patternW, patternH, p.gridWidth, p.gridHeight)
       if (showCodes.value) drawExportCodes(ctx, p.gridWidth, p.gridHeight, patternW / p.gridWidth, p.cells)
@@ -933,12 +1068,16 @@ export default defineComponent({
 
       ctx.save()
       ctx.translate(pad, pad)
-      ctx.imageSmoothingEnabled = false
-      const src = document.createElement('canvas')
-      src.width = d.width
-      src.height = d.height
-      src.getContext('2d')!.putImageData(d, 0, 0)
-      ctx.drawImage(src, 0, 0, patternW, patternH)
+      if (renderMode.value !== 'square') {
+        drawCylinderPattern(ctx, patternW, patternH, p, null, renderMode.value === 'hollow-cyl')
+      } else {
+        ctx.imageSmoothingEnabled = false
+        const src = document.createElement('canvas')
+        src.width = d.width
+        src.height = d.height
+        src.getContext('2d')!.putImageData(d, 0, 0)
+        ctx.drawImage(src, 0, 0, patternW, patternH)
+      }
 
       if (showGrid.value) drawExportGrid(ctx, patternW, patternH, p.gridWidth, p.gridHeight)
       if (showCodes.value) drawExportCodes(ctx, p.gridWidth, p.gridHeight, patternW / p.gridWidth, p.cells)
@@ -999,7 +1138,7 @@ export default defineComponent({
     }
 
     watch(
-      () => [store.beadedDataURL, store.processedDataURL, store.sourceDataURL, store.highlightCode, showGrid.value, showCodes.value, zoom.value] as const,
+      () => [store.beadedDataURL, store.processedDataURL, store.sourceDataURL, store.highlightCode, showGrid.value, showCodes.value, renderMode.value, zoom.value] as const,
       () => nextTick(() => {
         drawPattern()
         buildMinimapBg()
@@ -1092,6 +1231,29 @@ export default defineComponent({
                     onClick={() => showCodes.value = !showCodes.value}
                   />
                 </div>
+                <div class="seg-group" role="radiogroup" aria-label="Render mode">
+                  <button
+                    class={`seg-btn ${renderMode.value === 'square' ? 'active' : ''}`}
+                    role="radio"
+                    aria-checked={renderMode.value === 'square'}
+                    title={t.value.modeSquare}
+                    onClick={() => renderMode.value = 'square'}
+                  ><Square size={13} /></button>
+                  <button
+                    class={`seg-btn ${renderMode.value === 'solid-cyl' ? 'active' : ''}`}
+                    role="radio"
+                    aria-checked={renderMode.value === 'solid-cyl'}
+                    title={t.value.modeSolidCyl}
+                    onClick={() => renderMode.value = 'solid-cyl'}
+                  ><Circle size={13} /></button>
+                  <button
+                    class={`seg-btn ${renderMode.value === 'hollow-cyl' ? 'active' : ''}`}
+                    role="radio"
+                    aria-checked={renderMode.value === 'hollow-cyl'}
+                    title={t.value.modeHollowCyl}
+                    onClick={() => renderMode.value = 'hollow-cyl'}
+                  ><CircleDot size={13} /></button>
+                </div>
                 <div class="flex gap-0.5">
                   <button class="btn btn-sm" onClick={handleShare}><Share2 size={12} /> {t.value.share}</button>
                   <button class="btn btn-sm" onClick={() => showExportModal.value = true}><Download size={12} /> {t.value.export}</button>
@@ -1126,7 +1288,7 @@ export default defineComponent({
                   willChange: 'transform',
                 }}
               >
-                <canvas ref={canvasRef} style={{ imageRendering: zoom.value > 2 ? 'pixelated' : 'auto', display: 'block' }} />
+                <canvas ref={canvasRef} style={{ imageRendering: (renderMode.value === 'square' && zoom.value > 2) ? 'pixelated' : 'auto', display: 'block' }} />
               </div>
 
               {overX.value && (

@@ -38,6 +38,13 @@ export default defineComponent({
       { value: 'remove-bg' as const, label: t.value.ppRemoveBg },
     ])
 
+    const i18nPaletteOptions = computed(() =>
+      store.paletteOptions.map((opt) => ({
+        ...opt,
+        i18nLabel: opt.label === '全部' ? t.value.all : `${opt.count}${t.value.colorUnit}`,
+      })),
+    )
+
     return () => (
       <div class="panel space-y-3">
         <div class="space-y-1.5">
@@ -53,19 +60,19 @@ export default defineComponent({
               </button>
             ))}
           </div>
-          <p class="text-xs text-text-secondary">{store.currentBrand.name} · {store.currentBrand.colors.length}色</p>
+          <p class="text-xs text-text-secondary">{store.currentBrand.name} · {store.currentBrand.colors.length}{t.value.colorUnit}</p>
         </div>
 
         <div class="space-y-1.5">
           <span class="text-xs text-text-secondary">{t.value.beadPalette}</span>
           <div class="flex flex-wrap gap-1">
-            {store.paletteOptions.map((opt) => (
+            {i18nPaletteOptions.value.map((opt) => (
               <button
                 key={opt.count}
                 class={`btn btn-sm ${store.selectedPaletteCount === opt.count ? 'btn-primary' : ''}`}
                 onClick={() => store.setPalette(opt.count)}
               >
-                {opt.label}
+                {opt.i18nLabel}
               </button>
             ))}
           </div>

@@ -385,6 +385,42 @@ input[type="range"] {
   }
 }
 
+.seg-group {
+  display: inline-flex;
+  align-items: center;
+  background: rgb(var(--color-background));
+  border: 1px solid rgb(var(--color-border) / 15%);
+  border-radius: 1rem;
+  padding: 1px;
+  gap: 1px;
+}
+
+.seg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  border: none;
+  border-radius: calc(1rem - 2px);
+  background: transparent;
+  color: rgb(var(--color-text) / 50%);
+  transition: background 0.25s, color 0.25s, box-shadow 0.25s;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    color: rgb(var(--color-text));
+    background: rgb(var(--color-surface));
+  }
+
+  &.active {
+    background: rgb(var(--color-surface));
+    color: rgb(var(--color-primary));
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+}
+
 .bg-checkerboard {
   @include checkerboard;
 }
