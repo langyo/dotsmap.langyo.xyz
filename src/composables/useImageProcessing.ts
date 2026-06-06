@@ -52,7 +52,7 @@ export function useImageProcessing() {
       let imageData = imageToImageData(store.sourceImage)
       imageData = resizeImage(imageData, 512)
 
-      if (store.preprocessMode === 'remove-bg') {
+      if (store.preprocessMode === 'remove-bg' && imageData.width > 1 && imageData.height > 1) {
         imageData = removeBackground(imageData, store.bgThreshold)
       }
 

@@ -1,6 +1,7 @@
 import { defineComponent, computed } from 'vue'
 import { useAppStore } from '@/stores/app'
 import type { BeadColor } from '@/data/perlerColors'
+import { contrastTextColor } from '@/data/perlerColors'
 
 export default defineComponent({
   name: 'BeadLegend',
@@ -33,22 +34,21 @@ export default defineComponent({
           )}
         </div>
 
-        {store.highlightCode && (
+        {store.highlightCode && (() => {
+          const hc = legendItems.value.find((c) => c.code === store.highlightCode)
+          return (
           <div class="flex items-center gap-2 text-xs p-2 rounded-2xl bg-primary/10 text-primary">
             <div class="w-3 h-3 rounded-full border border-primary/30"
-              style={{ backgroundColor: store.selectedPalette.find((c) => c.code === store.highlightCode)?.hex }} />
-            仅显示: {legendItems.value.find((c) => c.code === store.highlightCode)?.code} {legendItems.value.find((c) => c.code === store.highlightCode)?.name}
+              style={{ backgroundColor: hc?.hex }} />
+            仅显示: {hc?.code} {hc?.name}
           </div>
-        )}
+          )
+        })()}
 
         <div class="flex flex-wrap gap-1">
           {legendItems.value.map((col: BeadColor) => {
             const active = store.highlightCode === col.code
-            const r = parseInt(col.hex.slice(1, 3), 16) / 255
-            const g = parseInt(col.hex.slice(3, 5), 16) / 255
-            const b = parseInt(col.hex.slice(5, 7), 16) / 255
-            const lum = 0.299 * r + 0.587 * g + 0.114 * b
-            const textColor = lum > 0.45 ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.9)'
+            const textColor = contrastTextColor(col.hex)
             return (
               <button
                 key={col.code}

@@ -136,7 +136,8 @@ export const useAppStore = defineStore('app', () => {
     selectedPaletteLabel.value = data.paletteCount === brand.colors.length ? '全部' : `${data.paletteCount}色`
     gridWidth.value = data.gridWidth
     gridHeight.value = data.gridHeight
-    preprocessMode.value = data.preprocessMode as PreprocessMode
+    const validModes: PreprocessMode[] = ['none', 'remove-bg']
+    preprocessMode.value = validModes.includes(data.preprocessMode as PreprocessMode) ? data.preprocessMode as PreprocessMode : 'remove-bg'
     bgThreshold.value = data.bgThreshold
     sourceImage.value = img
     sourceDataURL.value = data.sourceDataURL

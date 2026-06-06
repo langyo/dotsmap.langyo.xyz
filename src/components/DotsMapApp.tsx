@@ -34,19 +34,23 @@ export default defineComponent({
       },
     )
 
-    watch(() => store.beadPattern, async (p) => {
+    let saveTimer: ReturnType<typeof setTimeout> | null = null
+    watch(() => store.beadPattern, (p) => {
       if (p && store.sourceDataURL) {
-        try {
-          await saveState({
-            sourceDataURL: store.sourceDataURL,
-            brandId: store.currentBrand.id,
-            paletteCount: store.selectedPaletteCount,
-            gridWidth: store.gridWidth,
-            gridHeight: store.gridHeight,
-            preprocessMode: store.preprocessMode,
-            bgThreshold: store.bgThreshold,
-          })
-        } catch { /* ignore */ }
+        if (saveTimer) clearTimeout(saveTimer)
+        saveTimer = setTimeout(async () => {
+          try {
+            await saveState({
+              sourceDataURL: store.sourceDataURL!,
+              brandId: store.currentBrand.id,
+              paletteCount: store.selectedPaletteCount,
+              gridWidth: store.gridWidth,
+              gridHeight: store.gridHeight,
+              preprocessMode: store.preprocessMode,
+              bgThreshold: store.bgThreshold,
+            })
+          } catch { /* ignore */ }
+        }, 500)
       }
     })
 

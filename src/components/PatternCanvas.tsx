@@ -266,7 +266,7 @@ export default defineComponent({
 
       for (const c of p.cells) {
         const lum = hexLuminance(c.hex)
-        ctx.fillStyle = lum > 0.4 ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.9)'
+        ctx.fillStyle = lum > 0.45 ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.9)'
         ctx.fillText(c.colorCode, (c.x + 0.5) * cW, (c.y + 0.5) * cH)
       }
     }
@@ -295,8 +295,8 @@ export default defineComponent({
       if (!ctx) return
       if (mmBg) ctx.drawImage(mmBg, 0, 0)
       const s = mmScale.value
-      const rw = Math.max(10, (vpW.value / zoom.value) * s)
-      const rh = Math.max(10, (vpH.value / zoom.value) * s)
+      const rw = Math.min(mmW.value, Math.max(10, (vpW.value / zoom.value) * s))
+      const rh = Math.min(mmH.value, Math.max(10, (vpH.value / zoom.value) * s))
       const rx = Math.min(Math.max(0, (-panX.value / zoom.value) * s), mmW.value - rw)
       const ry = Math.min(Math.max(0, (-panY.value / zoom.value) * s), mmH.value - rh)
       ctx.fillStyle = 'rgba(255,107,157,0.15)'
@@ -630,7 +630,7 @@ export default defineComponent({
       ctx.textBaseline = 'middle'
       for (const c of cells) {
         const lum = hexLuminance(c.hex)
-        ctx.fillStyle = lum > 0.4 ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.9)'
+        ctx.fillStyle = lum > 0.45 ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.9)'
         ctx.fillText(c.colorCode, (c.x + 0.5) * cellSize, (c.y + 0.5) * cellSize)
       }
     }
@@ -951,9 +951,10 @@ export default defineComponent({
       if (!p) return
       const grid: string[][] = Array.from({ length: p.gridHeight }, () => Array(p.gridWidth).fill(''))
       for (const c of p.cells) {
-        if (c.y < grid.length && c.x < (grid[c.y]?.length ?? 0)) grid[c.y][c.x] = c.colorName
+        if (c.y < grid.length && c.x < (grid[c.y]?.length ?? 0)) grid[c.y][c.x] = `${c.colorCode} ${c.colorName}`
       }
-      const blob = new Blob([grid.map(r => r.join(',')).join('\n')], { type: 'text/csv' })
+      const csvEscape = (v: string) => `"${v.replace(/"/g, '""')}"`
+      const blob = new Blob([grid.map(r => r.map(csvEscape).join(',')).join('\n')], { type: 'text/csv' })
       downloadBlob(blob, 'dotsmap-pattern.csv')
     }
 

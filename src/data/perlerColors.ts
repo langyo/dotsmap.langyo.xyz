@@ -121,3 +121,11 @@ export function groupByFamily(colors: BeadColor[]): Map<ColorFamily, BeadColor[]
   }
   return map
 }
+
+export function contrastTextColor(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16) / 255
+  const g = parseInt(hex.slice(3, 5), 16) / 255
+  const b = parseInt(hex.slice(5, 7), 16) / 255
+  const lum = 0.299 * r + 0.587 * g + 0.114 * b
+  return lum > 0.45 ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.9)'
+}
