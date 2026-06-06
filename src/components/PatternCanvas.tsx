@@ -432,6 +432,7 @@ export default defineComponent({
 
     function onTouchStart(e: TouchEvent) {
       if (!vpRef.value) return
+      if (!store.beadPattern) return
       e.preventDefault()
 
       const rect = vpRef.value.getBoundingClientRect()
