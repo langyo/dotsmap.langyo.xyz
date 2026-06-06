@@ -21,7 +21,7 @@ export default defineComponent({
     const vpRef = ref<HTMLDivElement>()
     const mmRef = ref<HTMLCanvasElement>()
     const showGrid = ref(true)
-    const showCodes = ref(false)
+    const showCodes = ref(true)
     const zoom = ref(1)
     const panX = ref(0)
     const panY = ref(0)
@@ -201,6 +201,9 @@ export default defineComponent({
         if (showCodes.value && p && zoom.value >= 6) {
           drawCodes(ctx, w, h, p)
         }
+        if (hoverCell.value && p) {
+          drawCrosshair(ctx, w, h, p.gridWidth, p.gridHeight, hoverCell.value.x, hoverCell.value.y)
+        }
       } else if (url) {
         const img = new Image()
         img.onload = () => {
@@ -234,6 +237,33 @@ export default defineComponent({
       ctx.stroke()
     }
 
+    function drawCrosshair(ctx: CanvasRenderingContext2D, cw: number, ch: number, gw: number, gh: number, gx: number, gy: number) {
+      const cW = cw / gw
+      const cH = ch / gh
+      const cellLeft = gx * cW
+      const cellTop = gy * cH
+      const cellRight = (gx + 1) * cW
+      const cellBottom = (gy + 1) * cH
+      const cellCenterX = cellLeft + cW / 2
+      const cellCenterY = cellTop + cH / 2
+      const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim()
+      const color = primaryColor ? `rgb(${primaryColor})` : '#d63384'
+      ctx.save()
+      ctx.strokeStyle = color
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.moveTo(cellCenterX, 0)
+      ctx.lineTo(cellCenterX, cellTop)
+      ctx.moveTo(cellCenterX, cellBottom)
+      ctx.lineTo(cellCenterX, ch)
+      ctx.moveTo(0, cellCenterY)
+      ctx.lineTo(cellLeft, cellCenterY)
+      ctx.moveTo(cellRight, cellCenterY)
+      ctx.lineTo(cw, cellCenterY)
+      ctx.stroke()
+      ctx.strokeRect(cellLeft + 0.75, cellTop + 0.75, cW - 1.5, cH - 1.5)
+      ctx.restore()
+    }
     function applyHighlight(d: ImageData, p: BeadPattern): ImageData {
       const out = new ImageData(new Uint8ClampedArray(d.data), d.width, d.height)
       const highlightSet = new Set<string>()
@@ -977,6 +1007,10 @@ export default defineComponent({
       }),
     )
 
+    watch(hoverCell, () => {
+      nextTick(() => drawPattern())
+    })
+
     watch(() => store.beadPattern, (p) => {
       if (p) buildCellIndex()
     })
@@ -1114,6 +1148,15 @@ export default defineComponent({
                   <canvas ref={mmRef} width={mmW.value} height={mmH.value} style={{ display: 'block' }} />
                 </div>
               )}
+
+              {hoverCell.value && (
+                <div class="absolute bottom-1 left-1 flex items-center gap-1.5 text-xs text-text-secondary bg-surface/80 backdrop-blur-sm rounded-full px-2 py-1 pointer-events-none z-10">
+                  <div class="w-3 h-3 rounded-full border border-black/10"
+                    style={{ backgroundColor: store.selectedPalette.find(c => c.code === hoverCell.value!.code)?.hex ?? '#888' }} />
+                  <span class="font-mono">({hoverCell.value.x}, {hoverCell.value.y})</span>
+                  <span>{hoverCell.value.name}</span>
+                </div>
+              )}
             </>
           ) : (
             <div
@@ -1130,15 +1173,6 @@ export default defineComponent({
             </div>
           )}
         </div>
-
-        {hoverCell.value && (
-          <div class="flex items-center gap-2 text-xs text-text-secondary mt-1">
-            <div class="w-3 h-3 rounded-full border border-black/10"
-              style={{ backgroundColor: store.selectedPalette.find(c => c.code === hoverCell.value!.code)?.hex ?? '#888' }} />
-            <span class="font-mono">({hoverCell.value.x}, {hoverCell.value.y})</span>
-            <span>{hoverCell.value.name}</span>
-          </div>
-        )}
 
         {store.error && (
           <div class="text-xs text-error bg-error/10 rounded-2xl p-2">{store.error}</div>
