@@ -2,7 +2,8 @@ import { defineComponent, ref, watch, nextTick, computed, onMounted, onUnmounted
 import { useAppStore } from '@/stores/app'
 import { useImageProcessing } from '@/composables/useImageProcessing'
 import type { BeadPattern } from '@/types'
-import { ZoomIn, ZoomOut, Maximize2, Grid3x3, Hash, ImagePlus, X, Share2 } from 'lucide-vue-next'
+import { ZoomIn, ZoomOut, Maximize2, Grid3x3, Hash, ImagePlus, X, Share2, Download, Maximize, FileText } from 'lucide-vue-next'
+import { clearState } from '@/utils/persistence'
 
 const ZOOM_LEVELS = [1, 2, 3, 4, 6, 8, 10, 12, 16, 20, 24, 32]
 const SB_SIZE = 10
@@ -15,7 +16,7 @@ export default defineComponent({
   },
   setup(props) {
     const store = useAppStore()
-    const { handleFileUpload, applyPreprocessing, resetAll } = useImageProcessing()
+    const { handleFileUpload, applyPreprocessing, resetAll: resetAllAction } = useImageProcessing()
     const canvasRef = ref<HTMLCanvasElement>()
     const vpRef = ref<HTMLDivElement>()
     const mmRef = ref<HTMLCanvasElement>()
@@ -250,13 +251,6 @@ export default defineComponent({
       }
     }
 
-    function hexLuminance(hex: string): number {
-      const r = parseInt(hex.slice(1, 3), 16) / 255
-      const g = parseInt(hex.slice(3, 5), 16) / 255
-      const b = parseInt(hex.slice(5, 7), 16) / 255
-      return 0.299 * r + 0.587 * g + 0.114 * b
-    }
-
     function buildMinimapBg() {
       const d = imgData.value
       if (!d) { mmBg = null; return }
@@ -470,13 +464,373 @@ export default defineComponent({
       hoverCell.value = entry ? { x: gx, y: gy, code: entry.code, name: entry.name } : null
     }
 
-    function downloadPNG() {
-      const canvas = canvasRef.value
-      if (!canvas) return
+    const showExportModal = ref(false)
+
+    function hexLuminance(hex: string): number {
+      const r = parseInt(hex.slice(1, 3), 16) / 255
+      const g = parseInt(hex.slice(3, 5), 16) / 255
+      const b = parseInt(hex.slice(5, 7), 16) / 255
+      return 0.299 * r + 0.587 * g + 0.114 * b
+    }
+
+    async function generateQRCanvas(size: number): Promise<HTMLCanvasElement> {
+      const QRCode = (await import('qrcode')).default
+      const canvas = document.createElement('canvas')
+      await QRCode.toCanvas(canvas, 'https://dotsmap.langyo.xyz', {
+        width: size,
+        margin: 1,
+        color: { dark: '#333333', light: '#ffffff' },
+      })
+      return canvas
+    }
+
+    function drawExportGrid(ctx: CanvasRenderingContext2D, w: number, h: number, gw: number, gh: number) {
+      const cW = w / gw
+      const cH = h / gh
+      ctx.strokeStyle = 'rgba(128,128,128,0.18)'
+      ctx.lineWidth = 0.5
+      ctx.beginPath()
+      for (let x = 0; x <= gw; x++) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, h) }
+      for (let y = 0; y <= gh; y++) { ctx.moveTo(0, y * cH); ctx.lineTo(w, y * cH) }
+      ctx.stroke()
+      ctx.strokeStyle = 'rgba(128,128,128,0.4)'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      for (let x = 0; x <= gw; x += 10) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, h) }
+      for (let y = 0; y <= gh; y += 10) { ctx.moveTo(0, y * cH); ctx.lineTo(w, y * cH) }
+      ctx.stroke()
+    }
+
+    function drawExportCodes(ctx: CanvasRenderingContext2D, gw: number, gh: number, cellSize: number, cells: BeadPattern['cells']) {
+      const fontSize = cellSize * 0.3
+      if (fontSize < 6) return
+      ctx.font = `bold ${fontSize}px monospace`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      for (const c of cells) {
+        const lum = hexLuminance(c.hex)
+        ctx.fillStyle = lum > 0.4 ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.9)'
+        ctx.fillText(c.colorCode, (c.x + 0.5) * cellSize, (c.y + 0.5) * cellSize)
+      }
+    }
+
+    async function drawFooter(
+      ctx: CanvasRenderingContext2D,
+      fx: number, fy: number, fw: number, fh: number,
+      p: BeadPattern,
+      sorted: ReturnType<typeof getUsedColors>['sorted'],
+    ) {
+      ctx.fillStyle = '#f8f8f5'
+      ctx.fillRect(fx, fy, fw, fh)
+
+      ctx.fillStyle = '#d63384'
+      ctx.fillRect(fx, fy, fw, 3)
+
+      const titleSize = Math.round(fh * 0.14)
+      const subSize = Math.round(fh * 0.08)
+      const qrSize = Math.round(fh * 0.55)
+      const qrX = fx + fw - qrSize - 18
+      const qrTopY = fy + Math.round((fh - qrSize) * 0.3)
+
+      ctx.textBaseline = 'top'
+      ctx.textAlign = 'left'
+      const col1X = fx + 18
+      const line1Y = qrTopY
+
+      ctx.font = `${subSize}px sans-serif`
+      ctx.fillStyle = '#555'
+      ctx.fillText('该图纸由', col1X, line1Y)
+
+      ctx.font = `bold ${titleSize}px sans-serif`
+      const line2Y = line1Y + subSize + Math.round(fh * 0.02)
+      ctx.fillStyle = '#d63384'
+      ctx.fillText('DotsMap', col1X, line2Y)
+      const dmW = ctx.measureText('DotsMap').width
+      ctx.fillStyle = '#333'
+      ctx.fillText(' 创作', col1X + dmW, line2Y)
+
+      ctx.font = `${subSize}px sans-serif`
+      ctx.fillStyle = '#888'
+      ctx.fillText(
+        `${store.currentBrand.name} · ${store.selectedPaletteLabel} · ${p.gridWidth}×${p.gridHeight} · 使用 ${sorted.length} 种颜色`,
+        col1X,
+        line2Y + titleSize + Math.round(fh * 0.03),
+      )
+      ctx.textBaseline = 'middle'
+
+      ctx.font = `bold ${titleSize}px sans-serif`
+      const titleW = Math.max(
+        ctx.measureText('该图纸由').width,
+        ctx.measureText('DotsMap 创作').width,
+        ctx.measureText(`${store.currentBrand.name} · ${store.selectedPaletteLabel} · ${p.gridWidth}×${p.gridHeight} · 使用 ${sorted.length} 种颜色`).width,
+      )
+
+      try {
+        const qrCanvas = await generateQRCanvas(qrSize)
+        ctx.drawImage(qrCanvas, qrX, qrTopY)
+
+        ctx.fillStyle = '#999'
+        const urlSize = Math.round(fh * 0.065)
+        ctx.font = `${urlSize}px sans-serif`
+        ctx.textAlign = 'center'
+        ctx.fillText('dotsmap.langyo.xyz', qrX + qrSize / 2, qrTopY + qrSize + urlSize + 6)
+      } catch {
+        ctx.fillStyle = '#999'
+        ctx.font = `${subSize}px sans-serif`
+        ctx.textAlign = 'right'
+        ctx.fillText('dotsmap.langyo.xyz', fx + fw - 18, fy + fh * 0.5)
+      }
+
+      ctx.textAlign = 'left'
+
+      if (sorted.length > 0) {
+        const dotAreaLeft = fx + 18 + titleW + 48
+        const dotAreaW = (qrX - 48) - dotAreaLeft
+        if (dotAreaW > 20) {
+          const colsFor2 = Math.max(1, Math.floor(dotAreaW / (Math.round(fh * 0.28) * 1.15)))
+          const maxRows = sorted.length <= colsFor2 * 2 ? 2 : 3
+          const dotSize = Math.round(fh * (maxRows === 2 ? 0.28 : 0.2))
+          const gap = Math.round(dotSize * 0.15)
+          const step = dotSize + gap
+          const fontSize = Math.round(dotSize * 0.3)
+          const colsPerRow = Math.max(1, Math.floor(dotAreaW / step))
+          const dotStartX = dotAreaLeft + Math.round((dotAreaW - Math.min(sorted.length, colsPerRow) * step + gap) / 2)
+          const dotStartY = qrTopY
+
+          for (let i = 0; i < sorted.length; i++) {
+            const col = i % colsPerRow
+            const row = Math.floor(i / colsPerRow)
+            if (row >= maxRows) break
+            const cx = dotStartX + col * step + dotSize / 2
+            const cy = dotStartY + row * step + dotSize / 2
+
+            ctx.beginPath()
+            ctx.arc(cx, cy, dotSize / 2, 0, Math.PI * 2)
+            ctx.fillStyle = sorted[i].hex
+            ctx.fill()
+            ctx.strokeStyle = 'rgba(0,0,0,0.12)'
+            ctx.lineWidth = Math.max(1, dotSize * 0.04)
+            ctx.stroke()
+
+            const lr = parseInt(sorted[i].hex.slice(1, 3), 16) / 255
+            const lg = parseInt(sorted[i].hex.slice(3, 5), 16) / 255
+            const lb = parseInt(sorted[i].hex.slice(5, 7), 16) / 255
+            const lum = 0.299 * lr + 0.587 * lg + 0.114 * lb
+            ctx.fillStyle = lum > 0.55 ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.95)'
+            ctx.font = `bold ${fontSize}px monospace`
+            ctx.textAlign = 'center'
+            ctx.textBaseline = 'middle'
+            ctx.fillText(sorted[i].code, cx, cy)
+          }
+          ctx.textAlign = 'left'
+        }
+      }
+    }
+
+    function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+      return new Promise((resolve, reject) => {
+        canvas.toBlob(
+          blob => blob ? resolve(blob) : reject(new Error('Failed to create blob')),
+          'image/png',
+        )
+      })
+    }
+
+    function downloadBlob(blob: Blob, filename: string) {
+      const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
-      a.download = 'dotsmap-pattern.png'
-      a.href = canvas.toDataURL()
+      a.download = filename
+      a.href = url
       a.click()
+      setTimeout(() => URL.revokeObjectURL(url), 500)
+    }
+
+    function getUsedColors(p: BeadPattern) {
+      const usage: Record<string, number> = {}
+      for (const c of p.cells) usage[c.colorCode] = (usage[c.colorCode] ?? 0) + 1
+      const usedCodes = new Set(Object.keys(usage))
+      const usedColors = store.selectedPalette.filter(c => usedCodes.has(c.code))
+      const sorted = [...usedColors].sort((a, b) => (usage[b.code] ?? 0) - (usage[a.code] ?? 0))
+      return { usage, usedCodes, sorted }
+    }
+
+    async function downloadHighRes() {
+      showExportModal.value = false
+      const d = imgData.value
+      const p = store.beadPattern
+      if (!d || !p) return
+
+      const cellSize = 128
+      const pad = 48
+      const footerH = 180
+
+      const patternW = p.gridWidth * cellSize
+      const patternH = p.gridHeight * cellSize
+      const { sorted } = getUsedColors(p)
+
+      const totalW = pad + patternW + pad
+      const totalH = pad + patternH + pad + footerH
+
+      const canvas = document.createElement('canvas')
+      canvas.width = totalW
+      canvas.height = totalH
+      const ctx = canvas.getContext('2d')!
+
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, totalW, totalH)
+
+      ctx.save()
+      ctx.translate(pad, pad)
+      ctx.imageSmoothingEnabled = false
+      const src = document.createElement('canvas')
+      src.width = d.width
+      src.height = d.height
+      src.getContext('2d')!.putImageData(d, 0, 0)
+      ctx.drawImage(src, 0, 0, patternW, patternH)
+      drawExportGrid(ctx, patternW, patternH, p.gridWidth, p.gridHeight)
+      drawExportCodes(ctx, p.gridWidth, p.gridHeight, cellSize, p.cells)
+      ctx.restore()
+
+      await drawFooter(ctx, 0, pad + patternH + pad, totalW, footerH, p, sorted)
+
+      const blob = await canvasToBlob(canvas)
+      downloadBlob(blob, 'dotsmap-hd.png')
+    }
+
+    async function downloadShareImage() {
+      showExportModal.value = false
+      const d = imgData.value
+      const p = store.beadPattern
+      if (!d || !p) return
+
+      const scale = Math.max(3, Math.ceil(1200 / d.width))
+      const patternW = d.width * scale
+      const patternH = d.height * scale
+      const pad = 32
+      const footerH = 150
+
+      const { sorted } = getUsedColors(p)
+
+      const totalW = pad + patternW + pad
+      const totalH = pad + patternH + pad + footerH
+
+      const canvas = document.createElement('canvas')
+      canvas.width = totalW
+      canvas.height = totalH
+      const ctx = canvas.getContext('2d')!
+
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, totalW, totalH)
+
+      ctx.save()
+      ctx.translate(pad, pad)
+      ctx.imageSmoothingEnabled = false
+      const src = document.createElement('canvas')
+      src.width = d.width
+      src.height = d.height
+      src.getContext('2d')!.putImageData(d, 0, 0)
+      ctx.drawImage(src, 0, 0, patternW, patternH)
+
+      const cW = patternW / p.gridWidth, cH = patternH / p.gridHeight
+      ctx.strokeStyle = 'rgba(128,128,128,0.15)'
+      ctx.lineWidth = 0.5
+      ctx.beginPath()
+      for (let x = 0; x <= p.gridWidth; x++) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, patternH) }
+      for (let y = 0; y <= p.gridHeight; y++) { ctx.moveTo(0, y * cH); ctx.lineTo(patternW, y * cH) }
+      ctx.stroke()
+      ctx.strokeStyle = 'rgba(128,128,128,0.35)'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      for (let x = 0; x <= p.gridWidth; x += 10) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, patternH) }
+      for (let y = 0; y <= p.gridHeight; y += 10) { ctx.moveTo(0, y * cH); ctx.lineTo(patternW, y * cH) }
+      ctx.stroke()
+      ctx.restore()
+
+      await drawFooter(ctx, 0, pad + patternH + pad, totalW, footerH, p, sorted)
+
+      const blob = await canvasToBlob(canvas)
+      downloadBlob(blob, 'dotsmap-share.png')
+    }
+
+    async function downloadDataFiles() {
+      showExportModal.value = false
+      downloadSVG()
+      setTimeout(() => downloadCSV(), 300)
+    }
+
+    async function handleShare() {
+      const d = imgData.value
+      const p = store.beadPattern
+      if (!d || !p) return
+
+      const scale = Math.max(3, Math.ceil(1200 / d.width))
+      const patternW = d.width * scale
+      const patternH = d.height * scale
+      const pad = 32
+      const footerH = 150
+
+      const { sorted } = getUsedColors(p)
+
+      const totalW = pad + patternW + pad
+      const totalH = pad + patternH + pad + footerH
+
+      const canvas = document.createElement('canvas')
+      canvas.width = totalW
+      canvas.height = totalH
+      const ctx = canvas.getContext('2d')!
+
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, totalW, totalH)
+
+      ctx.save()
+      ctx.translate(pad, pad)
+      ctx.imageSmoothingEnabled = false
+      const src = document.createElement('canvas')
+      src.width = d.width
+      src.height = d.height
+      src.getContext('2d')!.putImageData(d, 0, 0)
+      ctx.drawImage(src, 0, 0, patternW, patternH)
+
+      const cW = patternW / p.gridWidth, cH = patternH / p.gridHeight
+      ctx.strokeStyle = 'rgba(128,128,128,0.15)'
+      ctx.lineWidth = 0.5
+      ctx.beginPath()
+      for (let x = 0; x <= p.gridWidth; x++) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, patternH) }
+      for (let y = 0; y <= p.gridHeight; y++) { ctx.moveTo(0, y * cH); ctx.lineTo(patternW, y * cH) }
+      ctx.stroke()
+      ctx.strokeStyle = 'rgba(128,128,128,0.35)'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      for (let x = 0; x <= p.gridWidth; x += 10) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, patternH) }
+      for (let y = 0; y <= p.gridHeight; y += 10) { ctx.moveTo(0, y * cH); ctx.lineTo(patternW, y * cH) }
+      ctx.stroke()
+      ctx.restore()
+
+      await drawFooter(ctx, 0, pad + patternH + pad, totalW, footerH, p, sorted)
+
+      const blob = await canvasToBlob(canvas)
+      const file = new File([blob], 'dotsmap-share.png', { type: 'image/png' })
+
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({
+            title: 'DotsMap 图纸',
+            text: '来看看我用 DotsMap 做的拼豆图纸！',
+            files: [file],
+          })
+          return
+        } catch {
+          // user cancelled
+        }
+      }
+
+      downloadBlob(blob, 'dotsmap-share.png')
+    }
+
+    function handleClearReset() {
+      if (!confirm('确定要清除当前图片和图纸吗？此操作无法撤销。')) return
+      resetAllAction()
+      clearState()
     }
 
     function downloadSVG() {
@@ -491,12 +845,7 @@ export default defineComponent({
       }
       parts.push('</svg>')
       const blob = new Blob([parts.join('')], { type: 'image/svg+xml' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.download = 'dotsmap-grid.svg'
-      a.href = url
-      a.click()
-      setTimeout(() => URL.revokeObjectURL(url), 500)
+      downloadBlob(blob, 'dotsmap-grid.svg')
     }
 
     function downloadCSV() {
@@ -507,89 +856,7 @@ export default defineComponent({
         if (c.y < grid.length && c.x < (grid[c.y]?.length ?? 0)) grid[c.y][c.x] = c.colorName
       }
       const blob = new Blob([grid.map(r => r.join(',')).join('\n')], { type: 'text/csv' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.download = 'dotsmap-pattern.csv'
-      a.href = url
-      a.click()
-      setTimeout(() => URL.revokeObjectURL(url), 500)
-    }
-
-    function downloadShare() {
-      const d = imgData.value
-      const p = store.beadPattern
-      if (!d || !p) return
-
-      const scale = Math.max(2, Math.ceil(800 / d.width))
-      const w = d.width * scale
-      const h = d.height * scale
-      const footerH = Math.round(Math.max(56, h * 0.07))
-
-      const canvas = document.createElement('canvas')
-      canvas.width = w
-      canvas.height = h + footerH
-      const ctx = canvas.getContext('2d')!
-
-      ctx.fillStyle = '#ffffff'
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-      ctx.imageSmoothingEnabled = false
-      const src = document.createElement('canvas')
-      src.width = d.width
-      src.height = d.height
-      src.getContext('2d')!.putImageData(d, 0, 0)
-      ctx.drawImage(src, 0, 0, w, h)
-
-      const cW = w / p.gridWidth, cH = h / p.gridHeight
-      ctx.strokeStyle = 'rgba(128,128,128,0.15)'
-      ctx.lineWidth = 0.5
-      ctx.beginPath()
-      for (let x = 0; x <= p.gridWidth; x++) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, h) }
-      for (let y = 0; y <= p.gridHeight; y++) { ctx.moveTo(0, y * cH); ctx.lineTo(w, y * cH) }
-      ctx.stroke()
-      ctx.strokeStyle = 'rgba(128,128,128,0.35)'
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      for (let x = 0; x <= p.gridWidth; x += 10) { ctx.moveTo(x * cW, 0); ctx.lineTo(x * cW, h) }
-      for (let y = 0; y <= p.gridHeight; y += 10) { ctx.moveTo(0, y * cH); ctx.lineTo(w, y * cH) }
-      ctx.stroke()
-
-      const accent = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim()
-      const primary = accent ? `rgb(${accent})` : 'rgb(255 107 157)'
-
-      ctx.fillStyle = '#f8f8f5'
-      ctx.fillRect(0, h, w, footerH)
-
-      ctx.fillStyle = primary
-      ctx.fillRect(0, h, w, 3)
-
-      const titleSize = Math.round(footerH * 0.28)
-      const subSize = Math.round(footerH * 0.2)
-
-      ctx.fillStyle = '#222'
-      ctx.font = `bold ${titleSize}px sans-serif`
-      ctx.textBaseline = 'middle'
-      ctx.textAlign = 'left'
-      ctx.fillText('DotsMap', 14, h + footerH * 0.38)
-
-      ctx.fillStyle = '#888'
-      ctx.font = `${subSize}px sans-serif`
-      ctx.fillText(
-        `${store.currentBrand.name} · ${p.gridWidth}×${p.gridHeight} · ${store.selectedPalette.length}色`,
-        14,
-        h + footerH * 0.7,
-      )
-
-      ctx.fillStyle = primary
-      ctx.textAlign = 'right'
-      ctx.font = `${subSize}px sans-serif`
-      ctx.fillText('dotsmap.langyo.xyz', w - 14, h + footerH * 0.55)
-      ctx.textAlign = 'left'
-
-      const a = document.createElement('a')
-      a.download = 'dotsmap-share.png'
-      a.href = canvas.toDataURL()
-      a.click()
+      downloadBlob(blob, 'dotsmap-pattern.csv')
     }
 
     watch(
@@ -649,6 +916,7 @@ export default defineComponent({
     return () => {
       const shouldFill = props.fullHeight && hasContent.value
       return (
+      <>
         <div class={`panel ${shouldFill ? 'h-full' : ''}`}>
           <div class="flex items-center justify-between flex-wrap gap-2">
             <h3 class="panel-title">
@@ -683,16 +951,14 @@ export default defineComponent({
                   />
                 </div>
                 <div class="flex gap-0.5">
-                  <button class="btn btn-sm" onClick={downloadShare}><Share2 size={12} /> 分享</button>
-                  <button class="btn btn-sm" onClick={downloadPNG}>PNG</button>
-                  <button class="btn btn-sm" onClick={downloadSVG}>SVG</button>
-                  <button class="btn btn-sm" onClick={downloadCSV}>CSV</button>
+                  <button class="btn btn-sm" onClick={handleShare}><Share2 size={12} /> 分享</button>
+                  <button class="btn btn-sm" onClick={() => showExportModal.value = true}><Download size={12} /> 导出</button>
                 </div>
               </div>
             ) : hasContent.value ? (
               <div class="flex gap-1">
                 <button class="btn btn-sm" onClick={() => fileInput.value?.click()}>更换图片</button>
-                <button class="btn btn-sm btn-danger" onClick={resetAll}><X size={12} /> 清除</button>
+                <button class="btn btn-sm btn-danger" onClick={handleClearReset}><X size={12} /> 清除</button>
               </div>
             ) : null}
           </div>
@@ -768,6 +1034,40 @@ export default defineComponent({
 
         <input ref={fileInput} type="file" accept="image/*" class="hidden" onChange={onFileChange} />
       </div>
+
+      <div class={`export-overlay ${showExportModal.value ? 'export-visible' : 'export-hidden'}`}>
+        <div class="export-backdrop" onClick={() => showExportModal.value = false} />
+        <div class="export-dialog">
+            <div class="export-dialog-header">
+              <span class="text-sm font-semibold">导出图纸</span>
+              <button class="btn-icon" onClick={() => showExportModal.value = false}><X size={14} /></button>
+            </div>
+            <div class="export-dialog-body">
+              <div class="export-option" onClick={downloadHighRes}>
+                <div class="export-option-icon"><Maximize size={18} /></div>
+                <div class="export-option-text">
+                  <h4>高清图纸 (适合打印)</h4>
+                  <p>每颗拼豆放大到 64 像素，带网格线和色号标注，打印出来照着拼非常方便</p>
+                </div>
+              </div>
+              <div class="export-option" onClick={downloadShareImage}>
+                <div class="export-option-icon"><Share2 size={18} /></div>
+                <div class="export-option-text">
+                  <h4>分享图片 (适合发朋友圈)</h4>
+                  <p>带 DotsMap 品牌信息和二维码的图纸图片，发到朋友圈、小红书等社交平台很好看</p>
+                </div>
+              </div>
+              <div class="export-option" onClick={downloadDataFiles}>
+                <div class="export-option-icon"><FileText size={18} /></div>
+                <div class="export-option-text">
+                  <h4>数据文件 (适合电脑编辑)</h4>
+                  <p>同时导出 SVG 矢量图和 CSV 颜色列表，可以在电脑上进一步编辑修改</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
       )
     }
   },

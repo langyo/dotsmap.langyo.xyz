@@ -1,18 +1,19 @@
-import { defineComponent, ref, watch, onMounted, onUnmounted } from 'vue'
+import { defineComponent, ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { useDarkMode } from '@/composables/useDarkMode'
 import { useImageProcessing } from '@/composables/useImageProcessing'
 import PaletteSelector from './PaletteSelector'
 import PatternCanvas from './PatternCanvas'
 import BeadLegend from './BeadLegend'
-import { Sun, Moon, Menu, X, Info, Github } from 'lucide-vue-next'
+import { Sun, Moon, Menu, X, Info, Github, RotateCcw } from 'lucide-vue-next'
+import { saveState, loadState, clearState } from '@/utils/persistence'
 
 export default defineComponent({
   name: 'DotsMapApp',
   setup() {
     const store = useAppStore()
     const { isDark, toggle: toggleDark } = useDarkMode()
-    const { generatePattern } = useImageProcessing()
+    const { generatePattern, applyPreprocessing } = useImageProcessing()
     const showAbout = ref(false)
     const leftOpen = ref(false)
 
@@ -23,15 +24,64 @@ export default defineComponent({
     watch(
       () => [store.currentBrand.id, store.selectedPaletteCount, store.gridWidth, store.gridHeight] as const,
       () => {
-        if (store.sourceImage) generatePattern()
+        if (store.sourceImage && !store.isRestoring) generatePattern()
       },
     )
+
+    watch(() => store.beadPattern, async (p) => {
+      if (p && store.sourceDataURL) {
+        try {
+          await saveState({
+            sourceDataURL: store.sourceDataURL,
+            brandId: store.currentBrand.id,
+            paletteCount: store.selectedPaletteCount,
+            gridWidth: store.gridWidth,
+            gridHeight: store.gridHeight,
+            preprocessMode: store.preprocessMode,
+            bgThreshold: store.bgThreshold,
+            magicTolerance: store.magicTolerance,
+            magicX: store.magicX,
+            magicY: store.magicY,
+          })
+        } catch { /* ignore */ }
+      }
+    })
+
+    function handleHeaderReset() {
+      if (!confirm('确定要重置吗？当前图纸和上传的图片将会丢失。')) return
+      store.resetAll()
+      clearState()
+    }
 
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') leftOpen.value = false
     }
 
-    onMounted(() => window.addEventListener('keydown', onKey))
+    onMounted(async () => {
+      window.addEventListener('keydown', onKey)
+
+      try {
+        const saved = await loadState()
+        if (!saved) return
+        const img = new Image()
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve()
+          img.onerror = () => reject()
+          img.src = saved.sourceDataURL
+        })
+        store.isRestoring = true
+        store.restoreFromPersisted(saved, img)
+        await nextTick()
+        store.isRestoring = false
+        if (saved.preprocessMode !== 'none') {
+          applyPreprocessing()
+        } else {
+          generatePattern()
+        }
+      } catch {
+        store.isRestoring = false
+      }
+    })
     onUnmounted(() => window.removeEventListener('keydown', onKey))
 
     return () => {
@@ -93,6 +143,11 @@ export default defineComponent({
               </h1>
             </div>
             <div class="flex items-center gap-1.5">
+              {hasSource && (
+                <button class="btn-icon" onClick={handleHeaderReset} title="重置">
+                  <RotateCcw size={16} />
+                </button>
+              )}
               <button class="btn-icon" onClick={() => showAbout.value = true} title="关于">
                 <Info size={16} />
               </button>
@@ -106,7 +161,7 @@ export default defineComponent({
 
       if (!hasSource) {
         return (
-          <div class="min-h-screen bg-background text-text font-sans transition-colors duration-200 flex flex-col">
+          <div class="min-h-screen bg-background text-text font-sans transition-colors duration-300 flex flex-col">
             {header}
             <main class="p-3 flex-1">
               <div class="flex flex-col gap-3 lg:grid lg:grid-cols-[320px_1fr]">
@@ -125,7 +180,7 @@ export default defineComponent({
       }
 
       return (
-        <div class="h-[100dvh] bg-background text-text font-sans transition-colors duration-200 flex flex-col">
+        <div class="h-[100dvh] bg-background text-text font-sans transition-colors duration-300 flex flex-col">
           {header}
 
           {/* body: aside | canvas */}

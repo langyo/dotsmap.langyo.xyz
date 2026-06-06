@@ -39,6 +39,7 @@ export const useAppStore = defineStore('app', () => {
   const colorUsage = ref<Record<string, number>>({})
   const highlightCode = ref<string | null>(null)
   const error = ref<string | null>(null)
+  const isRestoring = ref<boolean>(false)
 
   const brands = computed(() => allBrands)
 
@@ -114,6 +115,39 @@ export const useAppStore = defineStore('app', () => {
     error.value = msg
   }
 
+  function restoreFromPersisted(
+    data: {
+      sourceDataURL: string
+      brandId: string
+      paletteCount: number
+      gridWidth: number
+      gridHeight: number
+      preprocessMode: string
+      bgThreshold: number
+      magicTolerance: number
+      magicX: number
+      magicY: number
+    },
+    img: HTMLImageElement,
+  ) {
+    const brand = allBrands.find(b => b.id === data.brandId) ?? allBrands[0]
+    currentBrand.value = brand
+    paletteOptions.value = buildPalettes(brand)
+    const colors = getPaletteByCount(brand, data.paletteCount)
+    selectedPalette.value = colors
+    selectedPaletteCount.value = data.paletteCount
+    selectedPaletteLabel.value = data.paletteCount === brand.colors.length ? '全部' : `${data.paletteCount}色`
+    gridWidth.value = data.gridWidth
+    gridHeight.value = data.gridHeight
+    preprocessMode.value = data.preprocessMode as PreprocessMode
+    bgThreshold.value = data.bgThreshold
+    magicTolerance.value = data.magicTolerance
+    magicX.value = data.magicX
+    magicY.value = data.magicY
+    sourceImage.value = img
+    sourceDataURL.value = data.sourceDataURL
+  }
+
   function resetAll() {
     sourceImage.value = null
     sourceDataURL.value = null
@@ -147,9 +181,10 @@ export const useAppStore = defineStore('app', () => {
     gridWidth, gridHeight, beadSize,
     preprocessMode, bgThreshold, magicTolerance, magicX, magicY,
     isProcessing, colorUsage, highlightCode, brands, error,
+    isRestoring,
     setSourceImage, setBrand,
     setProcessedImage, setBeadedImage, setBeadPattern,
     setPalette, setPreprocessMode, setGridSize, resetPreprocess,
-    setError, resetAll,
+    setError, resetAll, restoreFromPersisted,
   }
 })
