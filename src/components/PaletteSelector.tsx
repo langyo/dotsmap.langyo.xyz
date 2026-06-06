@@ -1,13 +1,15 @@
 import { defineComponent, ref, computed, watch, onUnmounted } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { useImageProcessing } from '@/composables/useImageProcessing'
-import { categoryLabel, type BeadCategory } from '@/data/perlerColors'
+import { useI18n } from '@/i18n'
+import type { BeadCategory } from '@/data/perlerColors'
 
 export default defineComponent({
   name: 'PaletteSelector',
   setup() {
     const store = useAppStore()
     const { applyPreprocessing } = useImageProcessing()
+    const { t, categoryLabel } = useI18n()
     const selectedCategory = ref<BeadCategory | null>(null)
 
     let ppTimer: ReturnType<typeof setTimeout> | null = null
@@ -31,15 +33,22 @@ export default defineComponent({
       return store.selectedPalette.filter((c) => c.category === selectedCategory.value)
     })
 
-    const ppModes = [
-      { value: 'none' as const, label: '无' },
-      { value: 'remove-bg' as const, label: '去背景' },
-    ]
+    const ppModes = computed(() => [
+      { value: 'none' as const, label: t.value.ppNone },
+      { value: 'remove-bg' as const, label: t.value.ppRemoveBg },
+    ])
+
+    const i18nPaletteOptions = computed(() =>
+      store.paletteOptions.map((opt) => ({
+        ...opt,
+        i18nLabel: opt.count === store.currentBrand.colors.length ? t.value.all : `${opt.count}${t.value.colorUnit}`,
+      })),
+    )
 
     return () => (
       <div class="panel space-y-3">
         <div class="space-y-1.5">
-          <span class="text-xs text-text-secondary">拼豆品牌</span>
+          <span class="text-xs text-text-secondary">{t.value.beadBrand}</span>
           <div class="flex flex-wrap gap-1">
             {store.brands.map((b) => (
               <button
@@ -51,19 +60,19 @@ export default defineComponent({
               </button>
             ))}
           </div>
-          <p class="text-xs text-text-secondary">{store.currentBrand.name} · {store.currentBrand.colors.length}色</p>
+          <p class="text-xs text-text-secondary">{store.currentBrand.name} · {store.currentBrand.colors.length}{t.value.colorUnit}</p>
         </div>
 
         <div class="space-y-1.5">
-          <span class="text-xs text-text-secondary">拼豆色系</span>
+          <span class="text-xs text-text-secondary">{t.value.beadPalette}</span>
           <div class="flex flex-wrap gap-1">
-            {store.paletteOptions.map((opt) => (
+            {i18nPaletteOptions.value.map((opt) => (
               <button
                 key={opt.count}
                 class={`btn btn-sm ${store.selectedPaletteCount === opt.count ? 'btn-primary' : ''}`}
                 onClick={() => store.setPalette(opt.count)}
               >
-                {opt.label}
+                {opt.i18nLabel}
               </button>
             ))}
           </div>
@@ -76,7 +85,7 @@ export default defineComponent({
               class={`btn btn-sm ${!selectedCategory.value ? 'btn-primary' : ''}`}
               onClick={() => (selectedCategory.value = null)}
             >
-              全部({store.selectedPalette.length})
+                {t.value.all}({store.selectedPalette.length})
             </button>
             {categories.value.map(([cat, cnt]) => (
               <button
@@ -84,7 +93,7 @@ export default defineComponent({
                 class={`btn btn-sm ${selectedCategory.value === cat ? 'btn-primary' : ''}`}
                 onClick={() => (selectedCategory.value = selectedCategory.value === cat ? null : cat)}
               >
-                {categoryLabel[cat]}({cnt})
+                {categoryLabel.value[cat]}({cnt})
               </button>
             ))}
           </div>
@@ -109,21 +118,21 @@ export default defineComponent({
 
         <div class="flex gap-2 text-xs">
           <label class="flex-1">
-            <span class="text-text-secondary">宽</span>
+            <span class="text-text-secondary">{t.value.width}</span>
             <input type="number" class="input mt-1" value={store.gridWidth} min={1} max={200}
               onChange={(e) => { const v = parseInt((e.target as HTMLInputElement).value, 10); if (v > 0) store.setGridSize(v, store.gridHeight) }} />
           </label>
           <label class="flex-1">
-            <span class="text-text-secondary">高</span>
+            <span class="text-text-secondary">{t.value.height}</span>
             <input type="number" class="input mt-1" value={store.gridHeight} min={1} max={200}
               onChange={(e) => { const v = parseInt((e.target as HTMLInputElement).value, 10); if (v > 0) store.setGridSize(store.gridWidth, v) }} />
           </label>
         </div>
 
         <div class="border-t border-border/40 pt-2 space-y-2">
-          <span class="text-xs text-text-secondary">预处理</span>
+          <span class="text-xs text-text-secondary">{t.value.preprocessing}</span>
           <div class="flex gap-1">
-            {ppModes.map((m) => (
+            {ppModes.value.map((m) => (
               <button
                 key={m.value}
                 class={`btn btn-sm flex-1 ${store.preprocessMode === m.value ? 'btn-primary' : ''}`}
@@ -137,7 +146,7 @@ export default defineComponent({
           {store.preprocessMode === 'remove-bg' && (
             <label class="block animate-fade-in">
               <div class="flex justify-between text-xs text-text-secondary mb-1">
-                <span>背景阈值</span>
+                <span>{t.value.bgThreshold}</span>
                 <span class="font-mono">{store.bgThreshold}</span>
               </div>
               <input type="range" class="w-full" min={1} max={120} value={store.bgThreshold}

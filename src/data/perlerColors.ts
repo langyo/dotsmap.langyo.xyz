@@ -11,36 +11,12 @@ import { manman } from './brands/manman'
 import { panpan } from './brands/panpan'
 import { mixiaowo } from './brands/mixiaowo'
 
-export type { BeadColor, BrandDef, ColorFamily }
+export type { BeadColor, BrandDef }
 export { perler, hama, artkal, nabbi, artkalc, pyssla, mard, coco, manman, panpan, mixiaowo }
 
 export const allBrands: BrandDef[] = [mard, coco, manman, panpan, mixiaowo, perler, hama, artkal, nabbi, artkalc, pyssla]
 
-export const familyOrder: ColorFamily[] = [
-  'white', 'gray', 'black',
-  'red', 'pink', 'orange', 'yellow',
-  'green', 'blue', 'purple', 'brown',
-  'skin', 'metal', 'special',
-]
-
-export const familyLabel: Record<ColorFamily, string> = {
-  white: '白', gray: '灰', black: '黑',
-  red: '红', pink: '粉', orange: '橙', yellow: '黄',
-  green: '绿', blue: '蓝', purple: '紫', brown: '棕',
-  skin: '肤色', metal: '金属', special: '特效',
-}
-
 export type BeadCategory = BeadColor['category']
-
-export const categoryLabel: Record<BeadCategory, string> = {
-  solid: '标准色',
-  pearl: '珠光',
-  neon: '荧光',
-  glow: '夜光',
-  metallic: '金属',
-  glitter: '闪粉',
-  striped: '条纹',
-}
 
 export interface PaletteSet {
   label: string
@@ -110,16 +86,6 @@ export function getPaletteByCount(brand: BrandDef, count: number): BeadColor[] {
   const palettes = buildPalettes(brand)
   const found = palettes.find((p) => p.count === count)
   return found ? found.colors : selectDiverse(brand.colors, count)
-}
-
-export function groupByFamily(colors: BeadColor[]): Map<ColorFamily, BeadColor[]> {
-  const map = new Map<ColorFamily, BeadColor[]>()
-  for (const col of colors) {
-    const arr = map.get(col.family) ?? []
-    arr.push(col)
-    map.set(col.family, arr)
-  }
-  return map
 }
 
 export function contrastTextColor(hex: string): string {

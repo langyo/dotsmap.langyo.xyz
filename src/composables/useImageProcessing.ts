@@ -1,4 +1,5 @@
 import { useAppStore } from '@/stores/app'
+import { useI18n } from '@/i18n'
 import { nextTick } from 'vue'
 import {
   removeBackground,
@@ -13,6 +14,7 @@ import type { BeadPattern } from '@/types'
 
 export function useImageProcessing() {
   const store = useAppStore()
+  const { t } = useI18n()
 
   function dataURLFromImageData(imageData: ImageData): string {
     return imageDataToCanvas(imageData).toDataURL()
@@ -41,7 +43,7 @@ export function useImageProcessing() {
       await nextTick()
       store.isRestoring = false
     } catch (err) {
-      handleError(err, '图片加载失败')
+      handleError(err, t.value.loadImageFailed)
     } finally {
       store.isProcessing = false
       store.isRestoring = false
@@ -64,7 +66,7 @@ export function useImageProcessing() {
       store.setProcessedImage(imageData, dataURLFromImageData(imageData))
       generatePattern()
     } catch (err) {
-      handleError(err, '预处理失败')
+      handleError(err, t.value.preprocessFailed)
     } finally {
       store.isProcessing = false
     }
@@ -87,9 +89,6 @@ export function useImageProcessing() {
 
       const patternCells: Array<{ x: number; y: number; colorCode: string; colorName: string; hex: string }> = []
       const usage: Record<string, number> = {}
-
-      const cellW = resized.width / gw
-      const cellH = resized.height / gh
       const beadedData = new Uint8ClampedArray(gw * gh * 4)
 
       for (const cell of cells) {
@@ -129,7 +128,7 @@ export function useImageProcessing() {
       }
       store.setBeadPattern(pattern, usage)
     } catch (err) {
-      handleError(err, '图纸生成失败')
+      handleError(err, t.value.patternFailed)
     } finally {
       store.isProcessing = false
     }
