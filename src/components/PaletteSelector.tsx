@@ -12,7 +12,7 @@ export default defineComponent({
 
     let ppTimer: ReturnType<typeof setTimeout> | null = null
     watch(() => [store.preprocessMode, store.bgThreshold] as const, () => {
-      if (!store.sourceImage) return
+      if (!store.sourceImage || store.isRestoring) return
       if (ppTimer) clearTimeout(ppTimer)
       ppTimer = setTimeout(() => applyPreprocessing(), 80)
     })
