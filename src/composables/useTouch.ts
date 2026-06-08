@@ -1,7 +1,6 @@
 import { ref } from 'vue'
 import type { Ref } from 'vue'
 import { useAppStore } from '@/stores/app'
-import type { BeadPattern } from '@/types'
 
 interface TouchState {
   type: 'none' | 'pan' | 'pinch'

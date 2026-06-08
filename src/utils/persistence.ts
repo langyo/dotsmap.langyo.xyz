@@ -1,6 +1,8 @@
 const DB_NAME = 'dotsmap'
 const STORE_NAME = 'state'
 const KEY = 'app-state'
+const MAX_PERSIST_DIM = 256
+const PERSIST_QUALITY = 0.7
 
 export interface PersistedState {
   sourceDataURL: string
@@ -23,11 +25,36 @@ function openDB(): Promise<IDBDatabase> {
   })
 }
 
+function compressDataURL(dataURL: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const { width, height } = img
+      if (width <= MAX_PERSIST_DIM && height <= MAX_PERSIST_DIM) {
+        resolve(dataURL)
+        return
+      }
+      const ratio = Math.min(MAX_PERSIST_DIM / width, MAX_PERSIST_DIM / height)
+      const newW = Math.round(width * ratio)
+      const newH = Math.round(height * ratio)
+      const canvas = document.createElement('canvas')
+      canvas.width = newW
+      canvas.height = newH
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(img, 0, 0, newW, newH)
+      resolve(canvas.toDataURL('image/jpeg', PERSIST_QUALITY))
+    }
+    img.onerror = () => resolve(dataURL)
+    img.src = dataURL
+  })
+}
+
 export async function saveState(state: PersistedState): Promise<void> {
+  const compressed = await compressDataURL(state.sourceDataURL)
   const db = await openDB()
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite')
-    tx.objectStore(STORE_NAME).put(state, KEY)
+    tx.objectStore(STORE_NAME).put({ ...state, sourceDataURL: compressed }, KEY)
     tx.oncomplete = () => { db.close(); resolve() }
     tx.onerror = () => { db.close(); reject(tx.error) }
   })

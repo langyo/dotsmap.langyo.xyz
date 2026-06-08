@@ -1,7 +1,7 @@
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref } from 'vue'
 
 const isDark = ref(false)
-let initialized = false
+let listenerCount = 0
 let mediaHandler: ((e: MediaQueryListEvent) => void) | null = null
 let mediaQuery: MediaQueryList | undefined
 
@@ -24,35 +24,47 @@ function loadPreference() {
   applyTheme()
 }
 
-export function useDarkMode() {
-  onMounted(() => {
-    if (!initialized) {
-      initialized = true
-      loadPreference()
-      mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-      mediaHandler = (e: MediaQueryListEvent) => {
-        const stored = localStorage.getItem('dotsmap-dark')
-        if (stored === null) {
-          isDark.value = e.matches
-          applyTheme()
-        }
-      }
-      mediaQuery.addEventListener('change', mediaHandler)
+function attachMediaListener() {
+  if (mediaQuery) return
+  mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+  mediaHandler = (e: MediaQueryListEvent) => {
+    const stored = localStorage.getItem('dotsmap-dark')
+    if (stored === null) {
+      isDark.value = e.matches
+      applyTheme()
     }
-  })
+  }
+  mediaQuery.addEventListener('change', mediaHandler)
+}
 
-  onUnmounted(() => {
-    if (mediaHandler && mediaQuery) {
-      mediaQuery.removeEventListener('change', mediaHandler)
-      mediaHandler = null
-      initialized = false
-    }
-  })
+function detachMediaListener() {
+  if (mediaHandler && mediaQuery) {
+    mediaQuery.removeEventListener('change', mediaHandler)
+    mediaHandler = null
+    mediaQuery = undefined
+  }
+}
+
+export function useDarkMode() {
+  listenerCount++
+
+  if (listenerCount === 1) {
+    loadPreference()
+    attachMediaListener()
+  }
 
   function toggle() {
     isDark.value = !isDark.value
     applyTheme()
   }
 
-  return { isDark, toggle }
+  function release() {
+    listenerCount--
+    if (listenerCount <= 0) {
+      listenerCount = 0
+      detachMediaListener()
+    }
+  }
+
+  return { isDark, toggle, release }
 }

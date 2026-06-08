@@ -34,7 +34,8 @@ describe('imageProcessing', () => {
       const { downsampleToGrid } = await import('@/utils/imageProcessing')
       const data = new Uint8ClampedArray([])
       const imageData = new ImageData(data, 0, 0)
-      expect(data.length).toBe(0)
+      const cells = downsampleToGrid(imageData, 0, 0)
+      expect(cells).toHaveLength(0)
     })
   })
 

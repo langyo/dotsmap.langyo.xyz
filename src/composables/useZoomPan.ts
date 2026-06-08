@@ -1,6 +1,5 @@
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed } from 'vue'
 import type { Ref } from 'vue'
-import { useAppStore } from '@/stores/app'
 
 const ZOOM_LEVELS = [1, 2, 3, 4, 6, 8, 10, 12, 16, 20, 24, 32]
 const SB_SIZE = 10
@@ -8,9 +7,8 @@ const SB_SIZE = 10
 export function useZoomPan(
   vpRef: Ref<HTMLDivElement | undefined>,
   imgData: Ref<ImageData | null>,
-  mmRef: Ref<HTMLCanvasElement | undefined>,
+  _mmRef: Ref<HTMLCanvasElement | undefined>,
 ) {
-  const store = useAppStore()
   const zoom = ref(1)
   const panX = ref(0)
   const panY = ref(0)
@@ -241,7 +239,7 @@ export function useZoomPan(
     hThumbLen, hThumbPos, vThumbLen, vThumbPos,
     SB_SIZE,
     fitToViewport, clampPan, doZoom, resetView, centerView,
-    getMmRect, navMinimap, onWheel, snapToZoomLevel, startDrag, onVpMouseDown: (e: MouseEvent, drawMinimap: () => void, drawPattern: () => void) => {
+    getMmRect, navMinimap, onWheel, snapToZoomLevel, startDrag,     onVpMouseDown: (e: MouseEvent, drawMinimap: () => void, _drawPattern: () => void) => {
       if (!vpRef.value) return
       const rect = vpRef.value.getBoundingClientRect()
       const mx = e.clientX - rect.left

@@ -24,11 +24,37 @@ export interface PaletteSet {
   colors: BeadColor[]
 }
 
-function rgbDist(a: BeadColor, b: BeadColor): number {
-  const dr = a.r - b.r
-  const dg = a.g - b.g
-  const db = a.b - b.b
-  return dr * dr + dg * dg + db * db
+function rgbToLab(r: number, g: number, b: number): [number, number, number] {
+  const rr = r / 255 > 0.04045 ? Math.pow((r / 255 + 0.055) / 1.055, 2.4) : r / 255 / 12.92
+  const gg = g / 255 > 0.04045 ? Math.pow((g / 255 + 0.055) / 1.055, 2.4) : g / 255 / 12.92
+  const bb = b / 255 > 0.04045 ? Math.pow((b / 255 + 0.055) / 1.055, 2.4) : b / 255 / 12.92
+
+  const x = (rr * 0.4124564 + gg * 0.3575761 + bb * 0.1804375) / 0.95047
+  const y = (rr * 0.2126729 + gg * 0.7151522 + bb * 0.072175)
+  const z = (rr * 0.0193339 + gg * 0.119192 + bb * 0.9503041) / 1.08883
+
+  const f = (t: number) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116)
+
+  return [116 * f(y) - 16, 500 * (f(x) - f(y)), 200 * (f(y) - f(z))]
+}
+
+const labCache = new Map<string, [number, number, number]>()
+
+function cachedLab(color: BeadColor): [number, number, number] {
+  const cached = labCache.get(color.code)
+  if (cached) return cached
+  const lab = rgbToLab(color.r, color.g, color.b)
+  labCache.set(color.code, lab)
+  return lab
+}
+
+function labDist(a: BeadColor, b: BeadColor): number {
+  const [l1, a1, b1] = cachedLab(a)
+  const [l2, a2, b2] = cachedLab(b)
+  const dl = l1 - l2
+  const da = a1 - a2
+  const db = b1 - b2
+  return dl * dl + da * da + db * db
 }
 
 function selectDiverse(colors: BeadColor[], count: number): BeadColor[] {
@@ -55,7 +81,7 @@ function selectDiverse(colors: BeadColor[], count: number): BeadColor[] {
       if (selectedCodes.has(c.code)) continue
       let minDist = Infinity
       for (const s of selected) {
-        const d = rgbDist(c, s)
+        const d = labDist(c, s)
         if (d < minDist) minDist = d
       }
       if (minDist > bestMinDist) {
