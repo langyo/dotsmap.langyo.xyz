@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/langyo/dotsmap.langyo.xyz/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/langyo/dotsmap.langyo.xyz/actions/workflows/ci.yml/badge.svg" /></a>
-  <a href="https://github.com/langyo/dotsmap.langyo.xyz/blob/master/LICENSE"><img alt="License" src="https://img.shields.io/github/license/langyo/dotsmap.langyo.xyz" /></a>
+  <a href="https://github.com/langyo/dotsmap.langyo.xyz/blob/master/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0%20%2F%20MIT-blue" /></a>
   <a href="https://dotsmap.langyo.xyz"><img alt="Website" src="https://img.shields.io/website?url=https%3A%2F%2Fdotsmap.langyo.xyz" /></a>
   <img alt="Languages" src="https://img.shields.io/badge/languages-9-blue" />
 </p>
@@ -44,4 +44,4 @@ pnpm dev
 
 ## Licence
 
-MIT © [langyo](https://github.com/langyo)
+Dual-licensed under [Apache-2.0](../../LICENSE-APACHE) and [MIT](../../LICENSE-MIT).
