@@ -15,6 +15,11 @@ vite.config.d.ts
 vite.config.js
 pnpm-workspace.yaml
 
+/public/favicon-*.png
+/public/favicon.ico
+/public/favicon.webp
+/public/logo-*.webp
+
 # wrangler files
 .wrangler
 .dev.vars*

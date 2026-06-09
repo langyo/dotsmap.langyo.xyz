@@ -1,13 +1,11 @@
 <p align="center">
-  <img src="logo.webp" alt="DotsMap Logo" width="128" />
+  <img src="https://raw.githubusercontent.com/langyo/dotsmap.langyo.xyz/master/logo.webp" alt="DotsMap Logo" width="128" />
 </p>
 
 <h1 align="center">DotsMap</h1>
 
 <p align="center">
-  拼豆图纸生成器 · Fuse Bead Pattern Generator · アイロンビーズ図案ジェネレーター<br/>
-  Générateur de Perles à Repasser · Generador de Cuentas de Fusión · Генератор Схем для Термомозаики<br/>
-  مولد أنماط الخرز الحراري · 퓨즈비즈 도안 생성기
+  A fuse bead pattern generator — convert any image into a fuse bead pattern
 </p>
 
 <p align="center">
@@ -17,26 +15,16 @@
   <img alt="Languages" src="https://img.shields.io/badge/languages-9-blue" />
 </p>
 
-<p align="center">
-  <a href="docs/guides/en/README.md">English</a> ·
-  <a href="docs/guides/zhs/README.md">简体中文</a> ·
-  <a href="docs/guides/zht/README.md">繁體中文</a> ·
-  <a href="docs/guides/ja/README.md">日本語</a><br/>
-  <a href="docs/guides/ko/README.md">한국어</a> ·
-  <a href="docs/guides/fr/README.md">Français</a> ·
-  <a href="docs/guides/es/README.md">Español</a> ·
-  <a href="docs/guides/ru/README.md">Русский</a>
-</p>
-
 ---
 
 ## Features
 
 - 11 bead brand color matching (MARD, COCO, Manman, Panpan, Mixiaowo, Perler, Hama, Artkal, Nabbi, Artkal-C, IKEA Pyssla)
+- Brand-customized palette size tiers
 - AI color quantization with background removal preprocessing
 - Real-time preview with zoom/pan, hover crosshair + status overlay
 - 5×5 grid subdivisions, color codes shown by default
-- HD export for printing (256px/bead, with brand footer and swatches)
+- HD export for printing (256 px/bead, with brand footer and swatches)
 - Share image export (with DotsMap branding and QR code)
 - SVG vector + CSV data file export
 - IndexedDB state persistence (restore on refresh)
