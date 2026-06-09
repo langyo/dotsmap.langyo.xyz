@@ -1,11 +1,13 @@
 import sharp from 'sharp'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { mkdirSync } from 'fs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const root = resolve(__dirname, '..')
 const logo = resolve(root, 'logo.webp')
 const publicDir = resolve(root, 'public')
+mkdirSync(publicDir, { recursive: true })
 
 const sizes = [16, 32, 48, 180, 192, 512]
 
