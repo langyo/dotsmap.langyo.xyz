@@ -14,7 +14,7 @@ export default defineComponent({
   name: 'DotsMapApp',
   setup() {
     const store = useAppStore()
-    const { isDark, toggle: toggleDark } = useDarkMode()
+    const { isDark, toggle: toggleDark, release: releaseDarkMode } = useDarkMode()
     const { generatePattern, applyPreprocessing } = useImageProcessing()
     const { t } = useI18n()
     const showAbout = ref(false)
@@ -52,7 +52,7 @@ export default defineComponent({
               preprocessMode: store.preprocessMode,
               bgThreshold: store.bgThreshold,
             })
-          } catch { /* ignore */ }
+          } catch (err) { console.warn('Failed to persist state:', err) }
         }, 500)
       }
     })
@@ -86,7 +86,10 @@ export default defineComponent({
         store.isRestoring = false
       }
     })
-    onUnmounted(() => window.removeEventListener('keydown', onKey))
+    onUnmounted(() => {
+      window.removeEventListener('keydown', onKey)
+      releaseDarkMode()
+    })
 
     return () => {
       const hasSource = !!store.sourceDataURL
