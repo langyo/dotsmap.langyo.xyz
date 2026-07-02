@@ -2,7 +2,7 @@ import { beforeAll } from 'vitest'
 
 beforeAll(() => {
   if (typeof ImageData === 'undefined') {
-    (globalThis as any).ImageData = class ImageData {
+    ;(globalThis as Record<string, unknown>).ImageData = class ImageData {
       data: Uint8ClampedArray
       width: number
       height: number

@@ -2,8 +2,12 @@
   "name": "dotsmap",
   "version": "0.3.0",
   "private": true,
-  "license": "(Apache-2.0 OR MIT)",
+  "license": "SySL-1.0",
   "type": "module",
+  "packageManager": "pnpm@11.3.0",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "vite",
     "build": "node scripts/generate-favicons.mjs && vue-tsc -b && vite build",

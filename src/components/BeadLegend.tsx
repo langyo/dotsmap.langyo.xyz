@@ -55,7 +55,7 @@ export default defineComponent({
               <button
                 key={col.code}
                 class={`legend-swatch ${active ? 'legend-swatch-active' : ''}`}
-                style={{ '--swatch-bg': col.hex, '--swatch-text': textColor } as any}
+                style={{ '--swatch-bg': col.hex, '--swatch-text': textColor } as Record<string, string>}
                 title={`${colorLabel(col.code, col.name)} (${store.colorUsage[col.code] ?? 0}${t.value.beadUnit})`}
                 onClick={() => { store.highlightCode = active ? null : col.code }}
               >

@@ -20,6 +20,9 @@ pnpm-workspace.yaml
 /public/favicon.webp
 /public/logo-*.webp
 
+# dev tooling
+target/
+
 # wrangler files
 .wrangler
 .dev.vars*

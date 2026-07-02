@@ -12,7 +12,8 @@
 
 <p align="center">
   <a href="https://github.com/langyo/dotsmap.langyo.xyz/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/langyo/dotsmap.langyo.xyz/actions/workflows/ci.yml/badge.svg" /></a>
-  [[![License: SySL](https://img.shields.io/badge/license-SySL%201.0-blue)](./LICENSE.txt)](./LICENSE.txt)<a href="https://dotsmap.langyo.xyz"><img alt="Website" src="https://img.shields.io/website?url=https%3A%2F%2Fdotsmap.langyo.xyz" /></a>
+  <a href="./LICENSE"><img alt="License: SySL 1.0" src="https://img.shields.io/badge/license-SySL%201.0-blue" /></a>
+  <a href="https://dotsmap.langyo.xyz"><img alt="Website" src="https://img.shields.io/website?url=https%3A%2F%2Fdotsmap.langyo.xyz" /></a>
   <img alt="Languages" src="https://img.shields.io/badge/languages-9-blue" />
 </p>
 
@@ -55,4 +56,4 @@ pnpm dev
 
 ## 协议
 
-基于 [合成源码协议（SySL）1.0 版](./LICENSE.txt) 授权。
+基于 [合成源码协议（SySL）1.0 版](./LICENSE) 授权。
