@@ -52,7 +52,7 @@ export default defineComponent({
               preprocessMode: store.preprocessMode,
               bgThreshold: store.bgThreshold,
             })
-          } catch (err) { console.warn('Failed to persist state:', err) }
+          } catch (err) { if (import.meta.env.DEV) console.warn('Failed to persist state:', err) }
         }, 500)
       }
     })

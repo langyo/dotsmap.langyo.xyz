@@ -1,6 +1,6 @@
 import type { BeadColor } from '@/data/perlerColors'
 
-function rgbToLab(r: number, g: number, b: number): [number, number, number] {
+export function rgbToLab(r: number, g: number, b: number): [number, number, number] {
   const rr = r / 255 > 0.04045 ? Math.pow((r / 255 + 0.055) / 1.055, 2.4) : r / 255 / 12.92
   const gg = g / 255 > 0.04045 ? Math.pow((g / 255 + 0.055) / 1.055, 2.4) : g / 255 / 12.92
   const bb = b / 255 > 0.04045 ? Math.pow((b / 255 + 0.055) / 1.055, 2.4) : b / 255 / 12.92

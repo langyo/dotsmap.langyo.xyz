@@ -354,7 +354,7 @@ export function useExport(
   function handleClearReset() {
     if (!confirm(t.value.clearConfirm)) return
     resetAllAction()
-    clearState()
+    void clearState().catch((err) => { if (import.meta.env.DEV) console.warn('Failed to clear persisted state:', err) })
   }
 
   function downloadSVG() {
