@@ -19,6 +19,7 @@ export function useZoomPan(
   const vpH = ref(0)
   const MM_MAX = 160
   let resizeObs: ResizeObserver | null = null
+  let winMoveHandler: ((e: MouseEvent) => void) | null = null
 
   const natW = computed(() => imgData.value?.width ?? 0)
   const natH = computed(() => imgData.value?.height ?? 0)
@@ -160,7 +161,9 @@ export function useZoomPan(
     dragType.value = type
     dragStart.value = { mx, my, px: panX.value, py: panY.value }
     if (type === 'pan') isPanning.value = true
-    window.addEventListener('mousemove', (e: MouseEvent) => onWinMove(e, drawMinimap))
+    cleanupDrag()
+    winMoveHandler = (e: MouseEvent) => onWinMove(e, drawMinimap)
+    window.addEventListener('mousemove', winMoveHandler)
     window.addEventListener('mouseup', onWinUp)
   }
 
@@ -206,12 +209,14 @@ export function useZoomPan(
   function onWinUp() {
     dragType.value = 'none'
     isPanning.value = false
-    window.removeEventListener('mousemove', onWinMove as EventListener)
-    window.removeEventListener('mouseup', onWinUp)
+    cleanupDrag()
   }
 
   function cleanupDrag() {
-    window.removeEventListener('mousemove', onWinMove as EventListener)
+    if (winMoveHandler) {
+      window.removeEventListener('mousemove', winMoveHandler)
+      winMoveHandler = null
+    }
     window.removeEventListener('mouseup', onWinUp)
   }
 

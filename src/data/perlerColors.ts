@@ -28,10 +28,10 @@ export interface PaletteSet {
 const labCache = new Map<string, [number, number, number]>()
 
 function cachedLab(color: BeadColor): [number, number, number] {
-  const cached = labCache.get(color.code)
+  const cached = labCache.get(color.hex)
   if (cached) return cached
   const lab = rgbToLab(color.r, color.g, color.b)
-  labCache.set(color.code, lab)
+  labCache.set(color.hex, lab)
   return lab
 }
 
